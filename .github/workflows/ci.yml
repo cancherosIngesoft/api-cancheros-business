@@ -36,33 +36,7 @@ jobs:
           pip install coverage
           coverage run -m unittest discover -s tests
           coverage xml
-
-
-
-
-on:
-  workflow_run:
-    workflows: ["Run UnitTests"]
-    types:
-      - completed
-    branches: ["main", "develop"]
-
-permissions:
-  pull-requests: read # allows SonarCloud to decorate PRs with analysis results
-  contents: read
-  checks: write
-  security-events: write
-
-jobs:
-  Analysis:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # Important for better analysis
-
+          
       - name: Analyze with SonarCloud
         uses: SonarSource/sonarcloud-github-action@4006f663ecaf1f8093e8e4abb9227f6041f52216
         env:
@@ -75,3 +49,7 @@ jobs:
             -Dsonar.scm.provider=git
             -Dsonar.sourceEncoding=UTF-8
             -Dsonar.python.coverage.reportPaths=coverage.xml
+
+
+
+      
