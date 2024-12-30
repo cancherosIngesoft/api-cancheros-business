@@ -43,3 +43,9 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# coverage
+.coverage
+.pre-commit-config.yaml
+ __pycache__/
+*.pyc

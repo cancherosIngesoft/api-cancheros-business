@@ -36,7 +36,7 @@ jobs:
           pip install coverage
           coverage run -m unittest discover -s tests
           coverage xml
-          
+
       - name: Analyze with SonarCloud
         uses: SonarSource/sonarcloud-github-action@4006f663ecaf1f8093e8e4abb9227f6041f52216
         env:
@@ -48,7 +48,3 @@ jobs:
             -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
             -Dsonar.python.coverage.reportPaths=coverage.xml
           projectBaseDir: .
-
-
-
-      
