@@ -2,6 +2,7 @@ name: CI Pipeline
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened]
     branches:
       - main
       - develop
@@ -11,7 +12,7 @@ on:
       - develop
 
 jobs:
-  build-and-analyze:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,7 +22,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
       - name: Install dependencies
         run: |
@@ -36,19 +37,3 @@ jobs:
           pip install coverage
           coverage run -m unittest discover -s tests
           coverage xml
-          
-      - name: Analyze with SonarCloud
-        uses: SonarSource/sonarcloud-github-action@4006f663ecaf1f8093e8e4abb9227f6041f52216
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args:
-            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT }}
-            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
-            -Dsonar.python.coverage.reportPaths=coverage.xml
-          projectBaseDir: .
-
-
-
-      
