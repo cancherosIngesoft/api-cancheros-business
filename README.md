@@ -18,18 +18,38 @@ Cancheros es una API construida con Flask que sigue el patrón MVC y está dise�
 ## Instalación
 
 1. **Clonar el repositorio**
-   ```bash
+
+   ````bash
    git clone https://github.com/tuusuario/cancheros.git
    cd cancheros   ```
 
+   ````
+
 2. **Crear y activar un entorno virtual**
-   ```bash
+
+   ````bash
    python3 -m venv venv
    source venv/bin/activate   ```
 
+   ````
+
 3. **Instalar las dependencias**
-   ```bash
+   ````bash
    pip install -r requirements.txt   ```
+   ````
+
+## Configuración del Entorno de Desarrollo
+
+1. Instalar dependencias de desarrollo:
+
+   ```bash
+   pip install -r requirements-dev.txt
+   ```
+
+   2. Instalar pre-commit hooks:
+      ```bash
+      pre-commit install
+      ```
 
 ## Uso
 
@@ -38,10 +58,12 @@ Cancheros es una API construida con Flask que sigue el patrón MVC y está dise�
    Crea un archivo `.env` y añade las configuraciones necesarias.
 
 2. **Ejecutar la aplicación localmente**
-   ```bash
+
+   ````bash
    python run.py   ```
 
    La API estará disponible en `http://localhost:5000`.
+   ````
 
 ## Despliegue
 

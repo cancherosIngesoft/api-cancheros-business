@@ -43,3 +43,8 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# coverage
+.coverage
+ __pycache__/
+*.pyc
