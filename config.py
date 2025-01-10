@@ -9,7 +9,7 @@ class DevConfig:
     def __init__(self):
         self.ENV = "development"
         self.DEBUG = True
-        self.PORT = 9000
+        self.PORT = 8080
         self.HOST = '0.0.0.0'
 
 class ProductionConfig:
