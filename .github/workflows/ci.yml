@@ -11,29 +11,40 @@ on:
       - main
       - develop
 
-jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
+env:
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GAR_NAME: dev-cancheros
+  GAR_LOCATION: us-central1
+  GCP_REGION: us-central1
 
+jobs:
+  deploy:
+    name: Deploy to cloud run
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Google Cloud Auth
+        uses: google-github-actions/auth@v2
         with:
-          python-version: "3.10"
+          credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
 
-      - name: Install dependencies
+      - name: Configure Docker
         run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install --upgrade pip
-          pip install -r requirements.txt
+          gcloud auth configure-docker '${{ env.GAR_LOCATION }}-docker.pkg.dev'
 
-      - name: Run Unit Tests with Coverage
+      - name: Build and push Docker image for canchas service
         run: |
-          source venv/bin/activate
-          pip install coverage
-          coverage run -m unittest discover -s tests
-          coverage xml
+          cd apps/canchas-service
+          docker build -t '${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.GAR_NAME }}/dev-canchas-service:${{ github.sha }}' ./
+          docker push '${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.GAR_NAME }}/dev-canchas-service:${{ github.sha }}'
+
+      - name: Deploy canchas service to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: dev-canchas-service
+          region: ${{ secrets.GCP_REGION }}
+          image: "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.GAR_NAME }}/dev-canchas-service:${{ github.sha }}"
+          flags: --allow-unauthenticated
+  
