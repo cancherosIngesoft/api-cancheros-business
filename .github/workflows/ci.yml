@@ -36,7 +36,6 @@ jobs:
 
       - name: Build and push Docker image for canchas service
         run: |
-          cd apps/canchas-service
           docker build -t '${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.GAR_NAME }}/dev-canchas-service:${{ github.sha }}' ./
           docker push '${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.GAR_NAME }}/dev-canchas-service:${{ github.sha }}'
 
