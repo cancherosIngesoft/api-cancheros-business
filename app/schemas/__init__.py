@@ -1,0 +1,3 @@
+import marshmallow
+
+ma = marshmallow()
