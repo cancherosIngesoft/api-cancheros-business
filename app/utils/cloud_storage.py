@@ -15,7 +15,6 @@ def upload_image(file):
 
 def upload_to_gcs(file_data, file_name):
     client = storage.Client().from_service_account_json(credentials_path)
-    CHUNK_SIZE = 1024 * 1024 * 30
 
     object_name = f"{FOLDER_NAME}/{file_name}"
     bucket = client.get_bucket(BUCKET_NAME)

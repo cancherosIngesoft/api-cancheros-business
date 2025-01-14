@@ -50,4 +50,3 @@ venv.bak/
 *.pyc
 
 .env
-.storage-credentials.json
