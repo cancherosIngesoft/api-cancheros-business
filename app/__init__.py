@@ -5,7 +5,6 @@ from .config import Config
 from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from flask_mailman import Mail
 from flask_cors import CORS
 
 # loading environment variables

@@ -5,8 +5,8 @@ import random
 
 
 def get_auth0_token():
-
-    url = f"https://{current_app.config["AUTH0_DOMAIN"]}/oauth/token"
+    auth_domain = current_app.config["AUTH0_DOMAIN"]
+    url = f"https://{auth_domain}/oauth/token"
     headers = {"content-type": "application/json"}
     payload = {
         "client_id": current_app.config["AUTH0_CLIENT_ID"],
@@ -27,7 +27,8 @@ def generate_password(length=12):
 def create_auth_user(email):
     token = get_auth0_token()
     password = generate_password()
-    url = f"https://{current_app.config["AUTH0_DOMAIN"]}/api/v2/users"
+    auth_domain = current_app.config["AUTH0_DOMAIN"]
+    url = f"https://{auth_domain}/api/v2/users"
     headers = {
         "Authorization": f"Bearer {token}",
         "content-type": "application/json"
