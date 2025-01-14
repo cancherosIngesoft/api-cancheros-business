@@ -3,7 +3,9 @@ from app.models.Admin import Admin
 from app.models.Duenio import Duenio
 from app import db
 from flask import request, Blueprint, jsonify
-from app.schemas.schemas import UsuarioSchema, AdminSchema, DuenioSchema
+from app.schemas.Admin_sch import  AdminSchema
+from app.schemas.Duenio_sch import  DuenioSchema
+from app.schemas.Usuario_sch import UsuarioSchema
 
 
 usuarios_bp = Blueprint('usuarios', __name__)

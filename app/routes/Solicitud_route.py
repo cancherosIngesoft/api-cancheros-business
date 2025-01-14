@@ -2,18 +2,25 @@ from enum import Enum
 from app.models.Solicitud import Solicitud
 from app.utils.cloud_storage import upload_file, upload_to_gcs
 from .. import db
-from app.schemas.schemas import SolicitudSchema
+from app.schemas.Solicitud_sch import SolicitudSchema
 from flask import request, Blueprint, jsonify
 from flask_restful import Api, Resource
 
 solicitudes_bp = Blueprint('requests', __name__)
-solicitud_schema = SolicitudSchema()
-requests_schema = SolicitudSchema(only=("id_solicitud",
-                "nombre_duenio",
-                "email_duenio",
-                "tel_duenio",
-                "nombre_est",
-                "direccion"), many=True)
+solicitud_schema =  SolicitudSchema(only=["id_solicitud",
+                "personalInfo.name",
+                "personalInfo.email",
+                "businessInfo.name",
+                "localInfo.address"] )
+
+
+requests_schema = SolicitudSchema(only=["id_solicitud",
+                "personalInfo.name",
+                "personalInfo.email",
+                "personalInfo.phone",
+                "businessInfo.name",
+                "localInfo.address"], many=True)
+
 solicitudes_schema = SolicitudSchema(many=True)
 
 status = {
@@ -28,27 +35,38 @@ status = {
 @solicitudes_bp.route('/requests', methods = ['GET'])
 def get_solicitudes():
     status_param = request.args.get('status')
-    solicitudes = None
+    solicitudes_data = []
     if not status_param:
         solicitudes = Solicitud.query.all()
     else:
-        print(status_param)
         if status_param in status["valid_statuses_query"]:
              
             solicitudes = Solicitud.query.filter(Solicitud.resultado == status["status"][status_param]).all()
-            
-    solicitudes_serializados = [
-        {"id": solicitud.id_solicitud, "nombre": solicitud.nombre_duenio, "email": solicitud.email_duenio}
-        for solicitud in solicitudes
-    ]
-    return requests_schema.dump(solicitudes), 200
+    for solicitud in solicitudes:
+    
+        solicitud_data = {
+            "id_solicitud": solicitud.id_solicitud,
+            "personalInfo": solicitud.get_personal_info(),
+            "businessInfo": solicitud.get_business_info(),
+            "locationInfo": solicitud.get_location_info()
+        }
+        solicitudes_data.append(solicitud_data)
+
+    return requests_schema.dump(solicitudes_data), 200
 
 @solicitudes_bp.route('/requests/<int:solicitud_id>', methods = ['GET'])
 def get_solicitud(solicitud_id):
     try:
-
-        solicitud = Solicitud.query.get(solicitud_id)
         
+        solicitud = Solicitud.query.get(solicitud_id)
+        solicitud_data = {
+        "id_solicitud": solicitud.id_solicitud,
+        "personalInfo": solicitud.get_personal_info(),
+        "businessInfo": solicitud.get_business_info(),
+        "locationInfo": solicitud.get_location_info()
+        }
+        print(solicitud)
+        return solicitud_schema.dump(solicitud_data), 200
        
 
     except Exception as e:
