@@ -1,6 +1,9 @@
+from datetime import datetime
 from enum import Enum
 from app.models.Solicitud import Solicitud
+from app.utils.auth_0 import create_auth_user
 from app.utils.cloud_storage import upload_file, upload_to_gcs
+from app.utils.mailing import send_auth_mail
 from .. import db
 from app.schemas.Solicitud_sch import SolicitudSchema
 from flask import request, Blueprint, jsonify
@@ -11,7 +14,7 @@ solicitud_schema =  SolicitudSchema(only=["id_solicitud",
                 "personalInfo.name",
                 "personalInfo.email",
                 "businessInfo.name",
-                "localInfo.address"] )
+                "locationInfo.address"] )
 
 
 requests_schema = SolicitudSchema(only=["id_solicitud",
@@ -19,7 +22,7 @@ requests_schema = SolicitudSchema(only=["id_solicitud",
                 "personalInfo.email",
                 "personalInfo.phone",
                 "businessInfo.name",
-                "localInfo.address"], many=True)
+                "locationInfo.address"], many=True)
 
 solicitudes_schema = SolicitudSchema(many=True)
 
@@ -39,9 +42,9 @@ def get_solicitudes():
     if not status_param:
         solicitudes = Solicitud.query.all()
     else:
-        if status_param in status["valid_statuses_query"]:
-             
+        if status_param in status["valid_statuses_query"]: 
             solicitudes = Solicitud.query.filter(Solicitud.resultado == status["status"][status_param]).all()
+
     for solicitud in solicitudes:
     
         solicitud_data = {
@@ -100,7 +103,6 @@ def create_solicitud():
 @solicitudes_bp.route('/requests/upload-rut/<int:solicitud_id>', methods = ['POST'])
 def upload_rut(solicitud_id):
     try:
-
         solicitud = Solicitud.query.get(solicitud_id)
         if not solicitud:
             return jsonify({"error": "Solicitud no encontrada"}), 404
@@ -114,6 +116,65 @@ def upload_rut(solicitud_id):
 
         file_url = upload_to_gcs(file_data, file_name)
         solicitud.rut = file_url
+        db.session.commit()
+        return "Exitoso", 200
+       
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+    
+
+@solicitudes_bp.route('/requests/<int:solicitud_id>/approve', methods = ['POST'])
+def approve_request(solicitud_id):
+    try:
+        print(datetime.today())
+
+        solicitud = Solicitud.query.get(solicitud_id)
+        if not solicitud:
+            return jsonify({"error": "Solicitud no encontrada"}), 404
+
+        serialized_solicitud = solicitud_schema.dump({
+            "id_solicitud": solicitud.id_solicitud,
+            "personalInfo": solicitud.get_personal_info(),
+        })
+
+        name = serialized_solicitud["personalInfo"]["nombre_duenio"]
+        email_duenio = serialized_solicitud["personalInfo"]["email_duenio"]
+        email, password = create_auth_user(email_duenio)
+        send_auth_mail(name,email,password)
+        solicitud.ya_procesada = True
+        solicitud.fecha_procesada = datetime.today()
+        solicitud.resultado = True
+        db.session.commit()
+        return "Exitoso", 200
+       
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+    
+@solicitudes_bp.route('/requests/<int:solicitud_id>/reject', methods = ['POST'])
+def reject_request(solicitud_id):
+    try:
+        print(datetime.today())
+
+        solicitud = Solicitud.query.get(solicitud_id)
+        if not solicitud:
+            return jsonify({"error": "Solicitud no encontrada"}), 404
+
+        serialized_solicitud = solicitud_schema.dump({
+            "id_solicitud": solicitud.id_solicitud,
+            "personalInfo": solicitud.get_personal_info(),
+        })
+
+        name = serialized_solicitud["personalInfo"]["nombre_duenio"]
+        email_duenio = serialized_solicitud["personalInfo"]["email_duenio"]
+        # email, password = create_auth_user(email_duenio)
+        # send_mail(name,email,password)
+        solicitud.ya_procesada = True
+        solicitud.fecha_procesada = datetime.today()
+        solicitud.resultado = False
         db.session.commit()
         return "Exitoso", 200
        

@@ -13,7 +13,7 @@ class Solicitud(db.Model):
     tel_est = db.Column(db.String, nullable=False)
     nombre_est = db.Column(db.String(80), nullable=False)
     num_canchas = db.Column(db.Integer, nullable=False)
-    rut = db.Column(db.String(200), nullable=False)
+    rut = db.Column(db.String(200), nullable=True)
     localidad = db.Column(db.String(80), nullable=False)
     direccion = db.Column(db.String(120), nullable=False)
     latitud= db.Column(db.String, nullable=False)
