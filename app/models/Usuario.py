@@ -3,9 +3,7 @@ from app import db
 class Usuario(db.Model):
     id_usuario = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(80), nullable=False)
-    apellido = db.Column(db.String(80), nullable=False)
     correo = db.Column(db.String(80), nullable=False)
-    contrasenia = db.Column(db.String(80), nullable=False)
     es_capitan = db.Column(db.Boolean, nullable=False)
     es_jugador = db.Column(db.Boolean, nullable=False)
     es_aficionado = db.Column(db.Boolean, nullable=False)
