@@ -7,17 +7,54 @@ class Solicitud(db.Model):
     doc_duenio = db.Column(db.Integer, nullable=False)
     fecha_nacimiento = db.Column(db.DateTime, nullable=False)
     nombre_duenio = db.Column(db.String(80), nullable=False)
+    apellido_duenio = db.Column(db.String(80), nullable=False)
     email_duenio = db.Column(db.String(80), nullable=False)
-    tel_duenio = db.Column(db.Integer, nullable=False)
+    tel_duenio = db.Column(db.String, nullable=False)
+    tel_est = db.Column(db.String, nullable=False)
     nombre_est = db.Column(db.String(80), nullable=False)
     num_canchas = db.Column(db.Integer, nullable=False)
     rut = db.Column(db.String(200), nullable=False)
     localidad = db.Column(db.String(80), nullable=False)
     direccion = db.Column(db.String(120), nullable=False)
+    latitud= db.Column(db.String, nullable=False)
+    longitud = db.Column(db.String, nullable=False)
     ya_procesada = db.Column(db.Boolean, nullable=False)
     fecha_procesada = db.Column(db.DateTime, nullable=True)
     resultado = db.Column(db.Boolean, nullable=True)
 
+
+    def get_personal_info(self):
+        return {
+            "documentType": self.tipo_doc_duenio,
+            "documentNumber": self.doc_duenio,
+            "birthDate": self.fecha_nacimiento,
+            "name": self.nombre_duenio,
+            "lastName": self.nombre_duenio,  # Aún sin apellido en la BD
+            "email": self.email_duenio,
+            "phone": self.tel_duenio
+        }
+
+    def get_business_info(self):
+        return {
+            "name": self.nombre_est,
+            "courtCount": self.num_canchas,
+            "courtTypes": self.num_canchas,  # No guardado en la BD
+            "phone": self.tel_duenio,  # No guardado en la BD
+            "legalDocuments": {
+                "name": "RUT",
+                "url": self.rut
+            }
+        }
+
+    def get_location_info(self):
+        return {
+            "locality": self.localidad,
+            "address": self.direccion,
+            "coordinates": {
+                #"lat": self.altitud, # No se guarda en la BD
+                #"lng": self.longitud # No se guarda em la BD
+            }
+        }
 
     id_admin = db.Column(
         db.Integer, 
