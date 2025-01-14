@@ -41,6 +41,27 @@ class SolicitudSchema(Schema):
     businessInfo = fields.Nested(BusinessInfoSchema)
     locationInfo = fields.Nested(LocationInfoSchema)
 
+class SolicitudBaseSchema(Schema):
+    id_solicitud = fields.Integer(dump_only=True, data_key="id")
+    admin = fields.Nested(AdminSchema)
+    tipo_doc_duenio = fields.String()
+    doc_duenio = fields.Integer()
+    fecha_nacimiento = fields.DateTime()
+    nombre_duenio = fields.String()
+    email_duenio = fields.String()
+    tel_duenio = fields.Integer()
+    nombre_est = fields.String()
+    num_canchas = fields.Integer()
+    rut = fields.String()
+    localidad = fields.String()
+    direccion = fields.String()
+    resultado = fields.Boolean()
+    fecha_procesada = fields.DateTime()
+    longitud = fields.String()
+    apellido_duenio = fields.String()
+    latitud = fields.String()
+    tel_est = fields.String()
+
 data = {
     "id": 1,
     "tipo_doc_duenio": "CC",
