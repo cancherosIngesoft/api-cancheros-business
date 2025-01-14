@@ -1,6 +1,4 @@
 from marshmallow import fields, Schema
-
-
 from marshmallow import Schema, fields
 
 
@@ -154,19 +152,19 @@ class AdminSchema(Schema):
 
 
 class SolicitudSchema(Schema):
-    id_solicitud = fields.Integer(dump_only=True)
+    id_solicitud = fields.Integer(dump_only=True, data_key="id")
     admin = fields.Nested(AdminSchema)
-    tipo_doc_duenio = fields.String()
-    doc_duenio = fields.Integer()
-    fecha_nacimiento = fields.DateTime()
-    nombre_duenio = fields.String()
-    email_duenio = fields.String()
-    tel_duenio = fields.Integer()
-    nombre_est = fields.String()
+    tipo_doc_duenio = fields.String(data_key="documentType")
+    doc_duenio = fields.Integer(data_key="documentNumber")
+    fecha_nacimiento = fields.DateTime(data_key="birthDate")
+    nombre_duenio = fields.String(data_key="name")
+    email_duenio = fields.String(data_key="email")
+    tel_duenio = fields.Integer(data_key="phone")
+    nombre_est = fields.String(data_key="businessName")
     num_canchas = fields.Integer()
     rut = fields.String()
     localidad = fields.String()
-    direccion = fields.String()
+    direccion = fields.String(data_key="address")
     resultado = fields.Boolean()
     fecha_procesada = fields.DateTime()
 
