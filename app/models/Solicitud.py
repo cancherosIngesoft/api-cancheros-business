@@ -11,7 +11,7 @@ class Solicitud(db.Model):
     tel_duenio = db.Column(db.Integer, nullable=False)
     nombre_est = db.Column(db.String(80), nullable=False)
     num_canchas = db.Column(db.Integer, nullable=False)
-    rut = db.Column(db.String(20), nullable=False)
+    rut = db.Column(db.String(200), nullable=False)
     localidad = db.Column(db.String(80), nullable=False)
     direccion = db.Column(db.String(120), nullable=False)
     ya_procesada = db.Column(db.Boolean, nullable=False)
