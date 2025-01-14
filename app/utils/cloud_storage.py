@@ -1,6 +1,7 @@
 import io
 import os
 from google.cloud import storage
+from flask import current_app
 
 BUCKET_NAME = "cancheros_bucket"
 FOLDER_NAME = "rut"
@@ -14,7 +15,13 @@ def upload_image(file):
     content_type = file.content_type 
 
 def upload_to_gcs(file_data, file_name):
-    client = storage.Client().from_service_account_json(credentials_path)
+    ENV = current_app.config["ENVIRONMENT"]
+    
+    client = None
+    if(ENV == "LOCAL"):
+        client = storage.Client().from_service_account_json(credentials_path)
+    else:
+        client = storage.Client()
     CHUNK_SIZE = 1024 * 1024 * 30
 
     object_name = f"{FOLDER_NAME}/{file_name}"

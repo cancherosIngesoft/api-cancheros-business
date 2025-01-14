@@ -39,7 +39,7 @@ class SolicitudSchema(Schema):
     id_solicitud = fields.Integer(dump_only=True, data_key="id")
     personalInfo = fields.Nested(PersonalInfoSchema)
     businessInfo = fields.Nested(BusinessInfoSchema)
-    localInfo = fields.Nested(LocationInfoSchema)
+    locationInfo = fields.Nested(LocationInfoSchema)
 
 data = {
     "id": 1,
