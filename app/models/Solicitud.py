@@ -28,7 +28,7 @@ class Solicitud(db.Model):
             "documentType": self.tipo_doc_duenio,
             "documentNumber": self.doc_duenio,
             "birthDate": self.fecha_nacimiento,
-            "name": self.nombre_duenio,
+            "name": self.nombre_duenio + " " +  self.apellido_duenio,
             "lastName": self.nombre_duenio,  # Aún sin apellido en la BD
             "email": self.email_duenio,
             "phone": self.tel_duenio
