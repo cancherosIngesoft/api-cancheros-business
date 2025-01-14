@@ -76,9 +76,10 @@ def create_solicitud():
 
     except Exception as e:
         db.session.rollback()
+        
         return jsonify({"error": str(e)}), 500
     
-@solicitudes_bp.route('/requests/upload-rut', methods = ['POST'])
+@solicitudes_bp.route('/requests/upload-rut/<int:solicitud_id>', methods = ['POST'])
 def upload_rut(solicitud_id):
     try:
 
