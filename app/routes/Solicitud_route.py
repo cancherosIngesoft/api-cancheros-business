@@ -1,6 +1,8 @@
 from enum import Enum
 from app.models.Solicitud import Solicitud
+from app.utils.auth_0 import create_auth_user
 from app.utils.cloud_storage import upload_file, upload_to_gcs
+from app.utils.mailing import send_mail
 from .. import db
 from app.schemas.schemas import SolicitudSchema
 from flask import request, Blueprint, jsonify
@@ -97,6 +99,27 @@ def upload_rut(solicitud_id):
         file_url = upload_to_gcs(file_data, file_name)
         solicitud.rut = file_url
         db.session.commit()
+        return "Exitoso", 200
+       
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+    
+
+@solicitudes_bp.route('/requests/<int:solicitud_id>/approve', methods = ['POST'])
+def approve_request(solicitud_id):
+    try:
+
+        solicitud = Solicitud.query.get(solicitud_id)
+        if not solicitud:
+            return jsonify({"error": "Solicitud no encontrada"}), 404
+        
+        serialized_solicitud = solicitud_schema.dump(solicitud)
+        name = serialized_solicitud["name"]
+        email, password = create_auth_user(serialized_solicitud["email"])
+        send_mail(name,email,password)
+        
         return "Exitoso", 200
        
 
