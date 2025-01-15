@@ -18,6 +18,7 @@ class Solicitud(db.Model):
     direccion = db.Column(db.String(120), nullable=False)
     latitud= db.Column(db.String, nullable=False)
     longitud = db.Column(db.String, nullable=False)
+    comentario_rechazo= db.Column(db.String(300), nullable=True)
     ya_procesada = db.Column(db.Boolean, nullable=False)
     fecha_procesada = db.Column(db.DateTime, nullable=True)
     resultado = db.Column(db.Boolean, nullable=True)

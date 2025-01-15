@@ -37,6 +37,7 @@ class LocationInfoSchema(Schema):
 
 class SolicitudSchema(Schema):
     id_solicitud = fields.Integer(dump_only=True, data_key="id")
+    comentario_rechazo = fields.String()
     personalInfo = fields.Nested(PersonalInfoSchema)
     businessInfo = fields.Nested(BusinessInfoSchema)
     locationInfo = fields.Nested(LocationInfoSchema)
@@ -61,6 +62,7 @@ class SolicitudBaseSchema(Schema):
     apellido_duenio = fields.String()
     latitud = fields.String()
     tel_est = fields.String()
+    comentario_rechazo= fields.String()
 
 data = {
     "id": 1,
