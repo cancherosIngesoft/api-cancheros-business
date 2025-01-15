@@ -24,7 +24,7 @@ def generate_password(length=12):
     characters = string.ascii_letters + string.digits + "!@#$%^&*()"
     return ''.join(random.choice(characters) for _ in range(length))
 
-def create_auth_user(email):
+def create_auth_user(email, name):
     token = get_auth0_token()
     password = generate_password()
     auth_domain = current_app.config["AUTH0_DOMAIN"]
@@ -34,6 +34,7 @@ def create_auth_user(email):
         "content-type": "application/json"
     }
     payload = {
+        "name": name,
         "email": email,
         "password": password,
         "connection": "Username-Password-Authentication"

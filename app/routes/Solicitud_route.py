@@ -1,9 +1,10 @@
 from datetime import datetime
 from enum import Enum
+from app.models.Duenio import Duenio
 from app.models.Solicitud import Solicitud
 from app.utils.auth_0 import create_auth_user
 from app.utils.cloud_storage import upload_file, upload_to_gcs
-from app.utils.mailing import send_auth_mail
+from app.utils.mailing import send_auth_mail, send_rejected_mail
 from .. import db
 from app.schemas.Solicitud_sch import SolicitudBaseSchema, SolicitudSchema
 from flask import request, Blueprint, jsonify
@@ -11,6 +12,7 @@ from flask_restful import Api, Resource
 
 solicitudes_bp = Blueprint('requests', __name__)
 solicitud_schema =  SolicitudSchema(only=["id_solicitud",
+                "comentario_rechazo",
                 "personalInfo.name",
                 "personalInfo.email",
                 "businessInfo.name",
@@ -18,6 +20,7 @@ solicitud_schema =  SolicitudSchema(only=["id_solicitud",
 
 
 requests_schema = SolicitudSchema(only=["id_solicitud",
+                "comentario_rechazo",                       
                 "personalInfo.name",
                 "personalInfo.email",
                 "personalInfo.phone",
@@ -51,6 +54,7 @@ def get_solicitudes():
     
         solicitud_data = {
             "id_solicitud": solicitud.id_solicitud,
+            "comentario_rechazo": solicitud.comentario_rechazo,
             "personalInfo": solicitud.get_personal_info(),
             "businessInfo": solicitud.get_business_info(),
             "locationInfo": solicitud.get_location_info()
@@ -153,13 +157,25 @@ def approve_request(solicitud_id):
 
         name = serialized_solicitud["personalInfo"]["nombre_duenio"]
         email_duenio = serialized_solicitud["personalInfo"]["email_duenio"]
-        email, password = create_auth_user(email_duenio)
-        send_auth_mail(name,email,password)
+        
+        
         solicitud.ya_procesada = True
         solicitud.fecha_procesada = datetime.today()
-        solicitud.resultado = True
+        solicitud.resultado = True  
+
+        owner_data =  {
+            "nombre": name,
+            "correo": email_duenio
+        }
+        new_owner = Duenio(**owner_data)
+
+        db.session.add(new_owner)
         db.session.commit()
-        return "Exitoso", 200
+
+        email, password = create_auth_user(email_duenio, name)
+        send_auth_mail(name,email,password)
+
+        return "La solicitud ha sido aprobada", 200
        
 
     except Exception as e:
@@ -169,7 +185,10 @@ def approve_request(solicitud_id):
 @solicitudes_bp.route('/requests/<int:solicitud_id>/reject', methods = ['POST'])
 def reject_request(solicitud_id):
     try:
-        print(datetime.today())
+        data = request.get_json()
+        comentario = data.get("comentario")
+        if not comentario:
+            return jsonify({"error": "Debe incluir un comentario para la solicitud"}), 400
 
         solicitud = Solicitud.query.get(solicitud_id)
         if not solicitud:
@@ -182,13 +201,15 @@ def reject_request(solicitud_id):
 
         name = serialized_solicitud["personalInfo"]["nombre_duenio"]
         email_duenio = serialized_solicitud["personalInfo"]["email_duenio"]
-        # email, password = create_auth_user(email_duenio)
-        # send_mail(name,email,password)
+        
         solicitud.ya_procesada = True
         solicitud.fecha_procesada = datetime.today()
         solicitud.resultado = False
+        solicitud.comentario_rechazo = comentario
         db.session.commit()
-        return "Exitoso", 200
+
+        send_rejected_mail(email_duenio, name, comentario)
+        return "La solicitud ha sido rechazada", 200
        
 
     except Exception as e:

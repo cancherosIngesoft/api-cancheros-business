@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notificación de Solicitud Aprobada</title>
+    <title>Notificación de Solicitud Rechazada</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -22,17 +22,17 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
         h1 {
-            color: #2ecc71;
+            color: #e74c3c;
             text-align: center;
         }
         p {
             font-size: 16px;
             line-height: 1.6;
         }
-        .credentials {
+        .comment {
             background-color: #f9f9f9;
             padding: 10px;
-            border-left: 5px solid #2ecc71;
+            border-left: 5px solid #e74c3c;
             margin-top: 20px;
         }
         .footer {
@@ -46,27 +46,24 @@
 <body>
 
 <div class="container">
-    <h1>Solicitud Aprobada</h1>
+    <h1>Solicitud Rechazada</h1>
 
-    <p>Estimado/a {{nombre}},</p>
+    <p>Estimado/a {{name}},</p>
     
-    <p>Nos complace informarle que su solicitud ha sido aprobada.</p>
+    <p>Le informamos que su solicitud con el ID ha sido rechazada.</p>
 
-    <p>Para acceder a su cuenta, por favor, utilice las siguientes credenciales:</p>
+    <p>El motivo de la decisión se debe a los siguientes comentarios:</p>
 
-    <div class="credentials">
-        <p><strong>Usuario:</strong> {{ email }}</p>
-        <p><strong>Contraseña:</strong> {{ password }}</p>
+    <div class="comment">
+        <p><strong>Comentario: </strong>{{reason}}</p>
     </div>
 
-    <p>Le recomendamos cambiar su contraseña despues de iniciar sesion por motivos de seguridad.</p>
-
-    <p>Si tiene alguna pregunta o necesita asistencia, no dude en ponerse en contacto con nosotros.</p>
+    <p>Si tiene alguna pregunta o desea mas informacion, no dude en ponerse en contacto con nosotros.</p>
 
     <div class="footer">
         <p>Atentamente,</p>
         <p>Cancheros - Soporte</p>
-        <p>Si tiene alguna duda, contáctenos en cancherosfb@gmail.com.</p>
+        <p>Si tiene alguna duda, contactenos en cancherosfb@gmail.com.</p>
     </div>
 </div>
 
