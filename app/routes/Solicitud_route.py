@@ -137,7 +137,7 @@ def upload_rut(solicitud_id):
         file_url = upload_to_gcs(file_data, file_name)
         solicitud.rut = file_url
         db.session.commit()
-        return "Exitoso", 200
+        return jsonify({"message": "Archivo subido"}), 200
        
 
     except Exception as e:
@@ -179,7 +179,7 @@ def approve_request(solicitud_id):
         email, password = create_auth_user(email_duenio, name)
         send_auth_mail(name,email,password)
 
-        return "La solicitud ha sido aprobada", 200
+        return jsonify({"message": "La solicitud ha sido aprobada"}), 200
        
 
     except Exception as e:
@@ -213,7 +213,8 @@ def reject_request(solicitud_id):
         db.session.commit()
 
         send_rejected_mail(email_duenio, name, comentario)
-        return "La solicitud ha sido rechazada", 200
+        
+        return jsonify({"message": "La solicitud ha sido rechazada"}), 200
        
 
     except Exception as e:
