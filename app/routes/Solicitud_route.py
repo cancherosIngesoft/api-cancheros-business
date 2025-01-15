@@ -18,6 +18,9 @@ solicitud_schema =  SolicitudSchema(only=["id_solicitud",
                 "businessInfo.name",
                 "locationInfo.address"] )
 
+general_solicitud_schema =  SolicitudSchema()
+
+
 
 requests_schema = SolicitudSchema(only=["id_solicitud",
                 "comentario_rechazo",                       
@@ -71,11 +74,12 @@ def get_solicitud(solicitud_id):
         solicitud_data = {
         "id_solicitud": solicitud.id_solicitud,
         "personalInfo": solicitud.get_personal_info(),
-        "businessInfo": solicitud.get_business_info(),
-        "locationInfo": solicitud.get_location_info()
+        "businessInfo": {**solicitud.get_business_info(), "courtTypes": ["Futbol 7"]},
+        "locationInfo": solicitud.get_location_info(),
+        
         }
-        print(solicitud)
-        return solicitud_schema.dump(solicitud_data), 200
+        
+        return general_solicitud_schema.dump(solicitud_data), 200
        
 
     except Exception as e:
@@ -186,7 +190,7 @@ def approve_request(solicitud_id):
 def reject_request(solicitud_id):
     try:
         data = request.get_json()
-        comentario = data.get("comentario")
+        comentario = data.get("reason")
         if not comentario:
             return jsonify({"error": "Debe incluir un comentario para la solicitud"}), 400
 
