@@ -52,8 +52,8 @@ class Solicitud(db.Model):
             "locality": self.localidad,
             "address": self.direccion,
             "coordinates": {
-                #"lat": self.altitud, # No se guarda en la BD
-                #"lng": self.longitud # No se guarda em la BD
+                "lat": self.latitud, # No se guarda en la BD
+                "lng": self.longitud # No se guarda em la BD
             }
         }
 

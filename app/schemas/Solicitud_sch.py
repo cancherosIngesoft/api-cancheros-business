@@ -24,9 +24,10 @@ class PersonalInfoSchema(Schema):
 class BusinessInfoSchema(Schema):
     name = fields.String(data_key="nombre_est")
     courtCount = fields.Integer(data_key="num_canchas")
-    courtTypes = fields.String(data_key="num_canchas")  # TODO: Esto no se guarda en la BD
+    courtTypes = fields.List(fields.String,data_key="type_canchas")
     phone = fields.String(data_key="tel_est")  
     legalDocuments = fields.Nested(LegalDocumentsSchema, required=False)
+
 
 
 class LocationInfoSchema(Schema):
