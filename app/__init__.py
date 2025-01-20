@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
-
+from flasgger import Swagger
 # loading environment variables
 load_dotenv()
 db = SQLAlchemy()
@@ -56,6 +56,15 @@ def create_app():
         from app.routes import register_blueprints
         register_blueprints(app)
 
+    # swagger = Swagger(app, template={
+    #     "info": {
+    #         "title": "Cancheros API",
+    #         "description": "Cancheros API using Flask",
+    #         "version": "1.0.0"
+    #     },
+    #     "basePath": "/api",
+    # })
+    
     
     @app.route("/")
     def hello_world():

@@ -9,6 +9,7 @@ from .. import db
 from app.schemas.Solicitud_sch import SolicitudBaseSchema, SolicitudSchema
 from flask import request, Blueprint, jsonify
 from flask_restful import Api, Resource
+from flasgger import swag_from
 
 solicitudes_bp = Blueprint('requests', __name__)
 solicitud_schema =  SolicitudSchema(only=["id_solicitud",
@@ -43,7 +44,11 @@ status = {
     }
 }
 
-@solicitudes_bp.route('/requests', methods = ['GET'])
+# api = Api(solicitudes_bp, version="1.0", title= "Api", description="End points")
+api = Api(solicitudes_bp)
+ns_model = api.namespace('Methods', description="Metodos")
+# @solicitudes_bp.route('/requests', methods = ['GET'])
+@api.route('/requests')
 def get_solicitudes():
     status_param = request.args.get('status')
     solicitudes_data = []
