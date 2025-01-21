@@ -9,6 +9,7 @@ from .. import db
 from app.schemas.Solicitud_sch import SolicitudBaseSchema, SolicitudSchema
 from flask import request, Blueprint, jsonify
 from flask_restful import Api, Resource
+from flasgger import swag_from
 
 solicitudes_bp = Blueprint('requests', __name__)
 solicitud_schema =  SolicitudSchema(only=["id_solicitud",

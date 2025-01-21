@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from app.models.Establecimiento import Establecimiento
 from app.models.Cancha import Cancha
 import geopandas as gpd
@@ -7,7 +8,20 @@ from app import db
 from shapely.geometry import Point
 from flask import request, Blueprint, jsonify,current_app
 
+from app.models.Resenia import Resenia
+from app.schemas.Establecimiento_sch import BusinessInfoSchema
+
 establecimiento_bp = Blueprint('establecimiento', __name__)
+
+ALLOWED_FILTERS = {
+    "location": str,
+    "max_price": float,
+    "min_price": float,
+    "field_type": str,
+}
+
+
+business_schema =  BusinessInfoSchema(many=True)
 
 @establecimiento_bp.route('/register_est', methods = ['GET', 'POST'])
 def reg_establecimiento():
@@ -35,11 +49,72 @@ def reg_cancha():
 
     return "exito" #response_horario.json()
 
-#nombre
-#tipo
-#capacidad
-#descripcion
-#precio
+@establecimiento_bp.route('/business', methods = ['GET'])
+def get_establecimientos():
+    filters_venues = request.args
+    print(filters_venues)
+    try:
+        filters = parse_filters(filters_venues, ALLOWED_FILTERS)
+        
+
+        location = filters.get("location")
+        max_price = filters.get("max_price")
+        min_price = filters.get("min_price")
+        field_type = filters.get("field_type")
+
+        query = db.session.query(
+            Establecimiento.id_establecimiento.label('id_establecimiento'),
+            Establecimiento.nombre, Establecimiento.altitud, Establecimiento.longitud,
+            func.coalesce(func.avg(Resenia.calificacion), None).label('promedio_calificacion'),
+            func.max(Cancha.precio).label('max_price'),
+            func.min(Cancha.precio).label('min_price')
+        ).outerjoin(
+            Resenia, Establecimiento.id_establecimiento == Resenia.id_establecimiento
+        ).join(
+            Cancha, Establecimiento.id_establecimiento == Cancha.id_establecimiento
+        )
+
+        
+        if location:
+            query = query.filter(Establecimiento.localidad.ilike(f'%{location}%'))
+
+        # Filtros para canchas
+
+        if max_price is not None and min_price is not None:
+            query = query.filter(Cancha.precio.between(min_price, max_price))
+            
+        elif max_price is not None:
+            query = query.filter(Cancha.precio <= max_price)
+        elif min_price is not None:
+            query = query.filter(Cancha.precio >= min_price)
+
+        if field_type:
+            query = query.filter(Cancha.tamanio == field_type)
+        
+        query = query.group_by(
+            Establecimiento.id_establecimiento
+        )
+        establecimientos = query.all()
+
+
+
+        return business_schema.dump(establecimientos), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+def parse_filters(filters, allowed_filters):
+    parsed_filters = {}
+    
+    for key, value in filters.items():
+        if key not in allowed_filters:
+            raise ValueError(f"Filtro '{key}' invalido.")
+        try:
+            parsed_filters[key] = allowed_filters[key](value)   
+        except ValueError:
+            print("Error")
+            raise ValueError(f"Invalid value for filter '{key}': {value}")
+    return parsed_filters
 
 
 def validate_data_cancha(data):
