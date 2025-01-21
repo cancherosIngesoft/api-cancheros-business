@@ -44,11 +44,7 @@ status = {
     }
 }
 
-# api = Api(solicitudes_bp, version="1.0", title= "Api", description="End points")
-api = Api(solicitudes_bp)
-ns_model = api.namespace('Methods', description="Metodos")
-# @solicitudes_bp.route('/requests', methods = ['GET'])
-@api.route('/requests')
+@solicitudes_bp.route('/requests', methods = ['GET'])
 def get_solicitudes():
     status_param = request.args.get('status')
     solicitudes_data = []

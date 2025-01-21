@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
-from flasgger import Swagger
 # loading environment variables
 load_dotenv()
 db = SQLAlchemy()
@@ -44,27 +43,16 @@ def create_app():
     
     db.init_app(app)
     migrate.init_app(app, db)
-
     
     # Registrar los modelos o rutas
     with app.app_context():
         # from app.models
         # register_models("models")
-        from app.models import Cancha,Duenio,Duenio_establecimiento,Equipo,Establecimiento,Horario,Horario_establecimiento,Notificacion_estadistica,Notificacion_reserva
+        from app.models import Cancha,Duenio,Equipo,Establecimiento,Horario,Horario_establecimiento,Notificacion_estadistica,Notificacion_reserva
         from app.models import Partido,Plantilla,Reporte,Resenia,Reserva,Reservante,Solicitud,Subequipo,Usuario,Admin
         db.create_all()
         from app.routes import register_blueprints
         register_blueprints(app)
-
-    # swagger = Swagger(app, template={
-    #     "info": {
-    #         "title": "Cancheros API",
-    #         "description": "Cancheros API using Flask",
-    #         "version": "1.0.0"
-    #     },
-    #     "basePath": "/api",
-    # })
-    
     
     @app.route("/")
     def hello_world():
