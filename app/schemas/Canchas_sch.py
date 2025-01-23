@@ -11,3 +11,8 @@ class CanchaSchema(Schema):
     precio = fields.Float()
     descripcion = fields.String()
     nombre = fields.String()
+    imagen1 = fields.String(allow_none=True)
+    imagen2 = fields.String(allow_none=True)
+    imagen3 = fields.String(allow_none=True)
+    imagen4 = fields.String(allow_none=True)
+    imagen5 = fields.String(allow_none=True)

@@ -1,9 +1,10 @@
+import json
 from sqlalchemy import func
 from app.models.Establecimiento import Establecimiento
 from app.schemas.Canchas_sch import CanchaSchema
 from app.models.Cancha import Cancha
 from app.utils.cloud_storage import gcs_upload_image, upload_to_gcs
-from app.routes.Horarios_route import validate_data_time
+from app.routes.Horarios_route import set_court_time
 import geopandas as gpd
 import os
 import requests
@@ -40,41 +41,96 @@ def post_establecimiento():
 @establecimiento_bp.route('/register_courts/<int:est_id>', methods = ['POST'])
 def post_cancha(est_id):
     try:
-        data = request.get_json()
-        data['id_establecimiento'] = est_id
-        msg,cod = validate_data_cancha(data)
+        json_data = request.form['json']
+        data = json.loads(json_data)
+        dataCancha = {key: data[key] for key in ['nombre', 'tipo', 'capacidad', 'descripcion', 'precio'] if key in data}
+        dataSchedule = {key: data[key] for key in ['field_schedule'] if key in data}
+        dataCancha['id_establecimiento'] = est_id
+        msg,cod = validate_data_cancha(dataCancha)
         if cod != 200:
-            return msg
-        # files = request.files.getlist('files') 
-        # urls = []
-        # for file in files:
-        #     file_data = file.read()
-        #     file_name = file.filename
+            raise ValueError(f"Error en la validación: {msg.data}")
+        files = request.files.getlist('files') 
+        i = 1
+        for file in files:
+            file_data = file.read()
+            file_name = file.filename
             
-        #     if not file:
-        #         return jsonify({"error": "No se ha subido ningún archivo"}), 400
-
-        #     file_url = gcs_upload_image(file_data, file_name)
-        #     urls.append(file_url)
-        #     # solicitud.rut = file_url - cancha_imgs= file.url
-        #     # db.session.commit()
-        # return jsonify({"message": "Archivo subido",
-        #                 "urls" : urls}), 200
+            if not file:
+                file_url = None
+            else:
+                file_url = gcs_upload_image(file_data, file_name)
+            dataCancha[f'imagen{i}'] = file_url
+            i+=1
+        print(dataCancha)
         sch = CanchaSchema()
-        cancha_data = sch.load(data)
+        cancha_data = sch.load(dataCancha)
         nueva_cancha = Cancha(**cancha_data)
 
         db.session.add(nueva_cancha)
         db.session.commit()
+        try:
+            set_court_time(dataSchedule, nueva_cancha.id_cancha)
+        except Exception as e:
+            db.session.rollback()  
+            db.session.delete(nueva_cancha)
+            db.session.commit()
+            return jsonify({"error": f"Error al configurar los horarios de la cancha: {str(e)}"}), 500  
         return jsonify({"message":"cancha subida exitosamente"}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+    
+# def post_cancha(est_id):
+#     try:
+#         data = request.get_json()
+#         dataCancha = {key: data[key] for key in ['nombre', 'tipo', 'capacidad', 'descripcion', 'precio'] if key in data}
+#         dataSchedule = {key: data[key] for key in ['field_schedule'] if key in data}
+#         dataCancha['id_establecimiento'] = est_id
+#         msg,cod = validate_data_cancha(dataCancha)
+#         if cod != 200:
+#             raise ValueError(f"Error en la validación: {msg.data}")
+#         # files = request.files.getlist('files') 
+#         # urls = []
+#         # for file in files:
+#         #     file_data = file.read()
+#         #     file_name = file.filename
+            
+#         #     if not file:
+#         #         return jsonify({"error": "No se ha subido ningún archivo"}), 400
+
+#         #     file_url = gcs_upload_image(file_data, file_name)
+#         #     urls.append(file_url)
+#         #     # solicitud.rut = file_url - cancha_imgs= file.url
+#         #     # db.session.commit()
+#         # return jsonify({"message": "Archivo subido",
+#         #                 "urls" : urls}), 200
+#         sch = CanchaSchema()
+#         cancha_data = sch.load(dataCancha)
+#         nueva_cancha = Cancha(**cancha_data)
+
+#         db.session.add(nueva_cancha)
+#         db.session.commit()
+#         try:
+#             set_court_time(dataSchedule, nueva_cancha.id_cancha)
+#         except Exception as e:
+#             db.session.rollback()  
+#             db.session.delete(nueva_cancha)
+#             db.session.commit()
+#             return jsonify({"error": f"Error al configurar los horarios de la cancha: {str(e)}"}), 500  
+#         return jsonify({"message":"cancha subida exitosamente"}), 200
+#     except Exception as e:
+#         db.session.rollback()
+#         return jsonify({"error": str(e)}), 500
 
 @establecimiento_bp.route('/register_courts_img/<int:est_id>', methods = ['POST'])
 def post_cancha_img(est_id):
     try:
         files = request.files.getlist('files') 
+        jsonD = request.form['json']
+        #jsonD = jsonD.encode().decode('unicode_escape')
+        print(jsonD)
+        data = json.loads(jsonD)
+        print("DDD ", data)
         urls = []
         for file in files:
             file_data = file.read()
@@ -90,8 +146,6 @@ def post_cancha_img(est_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
-    return "exito" #response_horario.json()
 
 @establecimiento_bp.route('/business', methods = ['GET'])
 def get_establecimientos():

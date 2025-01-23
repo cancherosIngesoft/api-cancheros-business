@@ -17,7 +17,7 @@ def set_time():
     msg, cod = validate_data_time(data)
     schema = {}
     if cod != 200: 
-        return msg
+         raise ValueError(f"Error en la validación Horario: {msg.data}")
     horario_prev = Horario.query.filter_by(dia = data.get('day'), hora_inicio =  data.get('startTime'), hora_fin = data.get('endTime')).first()
     hor_sch = HorarioSchema()
     schema = hor_sch.dump(horario_prev)
@@ -31,16 +31,16 @@ def set_time():
 
 
 
-@horarios_bp.route('/set_court_time/<int:cancha_id>', methods = ['POST'])
-def set_court_time(cancha_id):
-    data = request.get_json()
+#@horarios_bp.route('/set_court_time/<int:cancha_id>', methods = ['POST'])
+def set_court_time(data, cancha_id):
+    #data = request.get_json()
     data['id_court'] = cancha_id
+    print('id cancha: ', cancha_id)
     msg, cod = validate_data_court_time(data)
     if cod != 200 :
-        return msg
+        raise ValueError(f"Error en la validación HorarioCancha: {msg.data}")
     schedule_list = data.get('field_schedule')
     url = "http://localhost:8080/api/set_time" 
-    schemas = []
     try:
         for schedule in schedule_list:   
             response = requests.post(url, json=schedule)
@@ -50,8 +50,7 @@ def set_court_time(cancha_id):
                 nuevo_hor = Horario_cancha(id_cancha = cancha_id, id_horario = id_time)
                 db.session.add(nuevo_hor)
                 db.session.commit()
-                schemas.append( HorarioCanchaSchema().dump(nuevo_hor) )
-        return jsonify({"field_schedule": schemas }), 200
+        return jsonify({"msg": "Horarios subidos correctamente" }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

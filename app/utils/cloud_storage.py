@@ -4,7 +4,6 @@ from google.cloud import storage
 from flask import current_app, jsonify
 
 BUCKET_NAME = "cancheros_bucket"
-BUCKET_IMAGES = "canchas-images"
 FOLDER_NAME = "rut"
 FOLDER_IMG = "canchas"
 MAX_IMG_SIZE = 2 * 1024 * 1024  # Tamaño máximo en bytes (2 MB)
@@ -59,11 +58,10 @@ def gcs_upload_image(file_data, file_name):
         client = storage.Client()
     
     object_name = f"{FOLDER_IMG}/{file_name}"
-    bucket = client.get_bucket(BUCKET_IMAGES)
+    bucket = client.get_bucket(BUCKET_NAME)
     blob =   bucket.blob(object_name)
     blob.upload_from_file(io.BytesIO(file_data), content_type='application/octet-stream')
-    blob.make_public()
-    return blob.make_public()
+    return blob.public_url
 
 
 def upload_file(chunk, file_name):
