@@ -1,3 +1,4 @@
+from collections import defaultdict
 import json
 from sqlalchemy import func
 from app.models.Establecimiento import Establecimiento
@@ -25,7 +26,11 @@ ALLOWED_FILTERS = {
 }
 
 
-business_schema =  BusinessInfoSchema(many=True)
+business_schema =  BusinessInfoSchema(exclude=[
+    "canchas"],many=True)
+business_schema_canchas =  BusinessInfoSchema(exclude=[
+    "promedio_calificacion",
+    "priceRange"])
 
 @establecimiento_bp.route('/register_est', methods = ['GET', 'POST'])
 def post_establecimiento():
@@ -137,7 +142,7 @@ def get_establecimientos():
             query = query.filter(Cancha.precio >= min_price)
 
         if field_type:
-            query = query.filter(Cancha.tamanio == field_type)
+            query = query.filter(Cancha.capacidad == field_type)
         
         query = query.group_by(
             Establecimiento.id_establecimiento
@@ -164,6 +169,18 @@ def parse_filters(filters, allowed_filters):
             raise ValueError(f"Invalid value for filter '{key}': {value}")
     return parsed_filters
 
+@establecimiento_bp.route('/business/<int:business_id>', methods = ['GET'])
+def get_establecimiento(business_id):
+    try:
+
+        establecimiento = Establecimiento.query.get(business_id)
+        if not establecimiento:
+            return jsonify({"error": "Establecimiento no encontrado"}), 404
+
+        return business_schema_canchas.dump(establecimiento), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 def validate_data_cancha(data):
     nombre = data.get('nombre')

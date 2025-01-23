@@ -1,6 +1,7 @@
 from marshmallow import fields, Schema
 from marshmallow import Schema, fields
 
+from app.schemas.Canchas_sch import CanchaSchema
 from app.schemas.Solicitud_sch import CoordinatesSchema
 
 class EstablecimientoSchema(Schema):
@@ -16,6 +17,7 @@ class BusinessInfoSchema(Schema):
     geoReference =  fields.Method("get_georeference")
     promedio_calificacion = fields.String(data_key="calification")
     priceRange = fields.Method("get_price_range")
+    canchas = fields.Nested(CanchaSchema, many=True)
 
     def get_price_range(self, obj):
         return [obj.min_price, obj.max_price]
