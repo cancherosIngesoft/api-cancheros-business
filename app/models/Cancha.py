@@ -7,6 +7,11 @@ class Cancha(db.Model):
     descripcion = db.Column(db.String(80), nullable=False)
     precio = db.Column(db.Numeric, nullable=False)
     nombre = db.Column(db.String(80), nullable=False)
+    imagen1 = db.Column(db.String(80), nullable=True)
+    imagen2 = db.Column(db.String(80), nullable=True)
+    imagen3 = db.Column(db.String(80), nullable=True)
+    imagen4 = db.Column(db.String(80), nullable=True)
+    imagen5 = db.Column(db.String(80), nullable=True)
     
     id_establecimiento = db.Column(
         db.Integer, 
