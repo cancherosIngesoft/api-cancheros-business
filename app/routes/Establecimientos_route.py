@@ -1,6 +1,10 @@
+import json
 from sqlalchemy import func
 from app.models.Establecimiento import Establecimiento
+from app.schemas.Canchas_sch import CanchaSchema
 from app.models.Cancha import Cancha
+from app.utils.cloud_storage import gcs_upload_image, upload_to_gcs
+from app.routes.Horarios_route import set_court_time
 import geopandas as gpd
 import os
 import requests
@@ -25,7 +29,7 @@ business_schema =  BusinessInfoSchema(many=True)
 business_schema_canchas =  BusinessInfoSchema(many=True)
 
 @establecimiento_bp.route('/register_est', methods = ['GET', 'POST'])
-def reg_establecimiento():
+def post_establecimiento():
     data = request.get_json()
 
     is_valid,error = validate_data_est(data)
@@ -35,20 +39,64 @@ def reg_establecimiento():
         db.session.commit()
     return error
 
-@establecimiento_bp.route('/register_courts', methods = ['POST'])
-def reg_cancha():
-    data = request.get_json()
-    #response_horario = requests.post('http://localhost:8080/api/set_horario', json=data['horario']).json()
-    is_valid, error = validate_data_cancha(data)
-    
-    # si response horario = {} entonces horario no valido
-    if is_valid:
-        nueva_cancha = Cancha( id_establecimiento = data.get('id_establecimiento'),tamanio =  data.get('tamanio'), grama = data.get('grama') , descripcion = data.get('descripcion'), nombre = data.get('nombre'), precio = data.get('precio'))
+@establecimiento_bp.route('/register_courts/<int:est_id>', methods = ['POST'])
+def post_cancha(est_id):
+    try:
+        json_data = request.form['json']
+        data = json.loads(json_data)
+        dataCancha = {key: data[key] for key in ['nombre', 'tipo', 'capacidad', 'descripcion', 'precio'] if key in data}
+        dataSchedule = {key: data[key] for key in ['field_schedule'] if key in data}
+        dataCancha['id_establecimiento'] = est_id
+        msg,cod = validate_data_cancha(dataCancha)
+        if cod != 200:
+            raise ValueError(f"Error en la validación: {msg.data}")
+        files = request.files.getlist('files') 
+        i = 1
+        for file in files:
+            file_data = file.read()
+            file_name = file.filename
+            
+            if not file:
+                file_url = None
+            else:
+                file_url = gcs_upload_image(file_data, file_name)
+            dataCancha[f'imagen{i}'] = file_url
+            i+=1
+        print(dataCancha)
+        sch = CanchaSchema()
+        cancha_data = sch.load(dataCancha)
+        nueva_cancha = Cancha(**cancha_data)
+
         db.session.add(nueva_cancha)
         db.session.commit()
+        try:
+            set_court_time(dataSchedule, nueva_cancha.id_cancha)
+        except Exception as e:
+            db.session.rollback()  
+            db.session.delete(nueva_cancha)
+            db.session.commit()
+            return jsonify({"error": f"Error al configurar los horarios de la cancha: {str(e)}"}), 500  
+        return jsonify({"message":"cancha subida exitosamente"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+    
+@establecimiento_bp.route('/get_courts/<int:est_id>', methods = ['GET'])
+def get_canchas(est_id):
+    try:
+        canchas= Cancha.query.filter_by(id_establecimiento = est_id).all()
+        if not canchas:
+            return jsonify({"error": "No hay canchas registradas"}), 500
+        else:
+            list_canchas = []
+            for cancha in canchas:
+                cancha_schema = CanchaSchema().dump(cancha)
+                list_canchas.append(cancha_schema)
+            return jsonify({"courts": list_canchas}), 200
+            
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-
-    return "exito" #response_horario.json()
 
 @establecimiento_bp.route('/business', methods = ['GET'])
 def get_establecimientos():
@@ -142,36 +190,32 @@ def get_establecimiento(business_id):
 
 def validate_data_cancha(data):
     nombre = data.get('nombre')
+   
+    if not nombre:
+        return jsonify({"error": "Debe incluir un nombre para la cancha"}), 400
     tipo = data.get('tipo')
+    if not tipo:
+        return jsonify({"error": "Debe incluir un tipo para la cancha"}), 400  
     capacidad =  data.get('capacidad')
+    if not capacidad:
+        return jsonify({"error": "Debe incluir capacidad para la cancha"}), 400 
     deescripcion = data.get('descripcion')
+    if not deescripcion:
+        return jsonify({"error": "Debe incluir descripcion para la cancha"}), 400 
     precio = data.get('precio')
-    horario = data.get('horario')
+    if not precio:
+        return jsonify({"error": "Debe incluir precio para la cancha"}), 400 
+    
 
-
-    # if not nombre:
-    #     return False, "ERROR: nombre nulo"  
-
-    # if not tipo:
-    #     return False, "ERROR: tipo nulo"  
-    
-    # if not capacidad:
-    #     return False, "ERROR: capacidad nulo"  
-    
-    # if not deescripcion:
-    #     return False, "ERROR: descripcion nulo"  
-    
-    # if not precio:
-    #     return False, "ERROR: precio nulo"   
-    
+    # horario = data.get('horario')
     # if not horario:
-    #     return False, "ERROR: horario  nulo"  
-    
-    # establecimiento = Establecimiento.query.filter_by(id_establecimiento = data.get('id_establecimiento')).first()
+    #     return jsonify({"error": "Debe incluir horario para la cancha"}), 400 
 
-    # if not establecimiento: 
-    #     return False, "ERROR: No existe el establecimiento asociado" 
-    return True, "Exito"
+    establecimiento = Establecimiento.query.filter_by(id_establecimiento = data.get('id_establecimiento')).first()
+    if not establecimiento:
+        return jsonify({"error": "El establecimiento no existe"}), 400 
+    
+    return jsonify({"message":"Data valida"}), 200
 
 def validate_data_est(data):
     RUT = data.get('RUT')
