@@ -17,7 +17,7 @@ class BusinessInfoSchema(Schema):
     geoReference =  fields.Method("get_georeference")
     promedio_calificacion = fields.String(data_key="calification")
     priceRange = fields.Method("get_price_range")
-    # canchas = fields.List(fields.Nested(CanchaSchema))
+    canchas = fields.Nested(CanchaSchema, many=True)
 
     def get_price_range(self, obj):
         return [obj.min_price, obj.max_price]
