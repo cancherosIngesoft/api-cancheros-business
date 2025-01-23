@@ -22,6 +22,7 @@ ALLOWED_FILTERS = {
 
 
 business_schema =  BusinessInfoSchema(many=True)
+business_schema_canchas =  BusinessInfoSchema(many=True)
 
 @establecimiento_bp.route('/register_est', methods = ['GET', 'POST'])
 def reg_establecimiento():
@@ -116,6 +117,28 @@ def parse_filters(filters, allowed_filters):
             raise ValueError(f"Invalid value for filter '{key}': {value}")
     return parsed_filters
 
+@establecimiento_bp.route('/business/<int:business_id>', methods = ['GET'])
+def get_establecimiento(business_id):
+    try:
+        query = db.session.query(
+            Establecimiento,
+            Cancha
+        ).join(
+            Cancha, Cancha.id_establecimiento == Establecimiento.id_establecimiento
+        ).filter(
+            Establecimiento.id_establecimiento == business_id
+        )
+
+        results = query.all()
+
+        return business_schema_canchas.dump(results), 200
+
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    resultados = query.all()
+    return
 
 def validate_data_cancha(data):
     nombre = data.get('nombre')
