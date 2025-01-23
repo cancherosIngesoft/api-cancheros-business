@@ -2,8 +2,8 @@ from app import db
 
 class Cancha(db.Model):
     id_cancha = db.Column(db.Integer, primary_key=True)
-    tamanio = db.Column(db.Integer, nullable=False)
-    grama = db.Column(db.String(80), nullable=False)
+    capacidad = db.Column(db.Integer, nullable=False)
+    tipo = db.Column(db.String(80), nullable=False)
     descripcion = db.Column(db.String(80), nullable=False)
     precio = db.Column(db.Numeric, nullable=False)
     nombre = db.Column(db.String(80), nullable=False)
