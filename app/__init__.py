@@ -49,7 +49,7 @@ def create_app():
         # from app.models
         # register_models("models")
         from app.models import Cancha,Duenio,Equipo,Establecimiento,Horario,Horario_establecimiento,Notificacion_estadistica,Notificacion_reserva
-        from app.models import Partido,Plantilla,Reporte,Resenia,Reserva,Reservante,Solicitud,Subequipo,Usuario,Admin
+        from app.models import Partido,Plantilla,Reporte,Resenia,Reserva,Reservante,Solicitud,Subequipo,Usuario,Admin,Participante
         db.create_all()
         from app.routes import register_blueprints
         register_blueprints(app)

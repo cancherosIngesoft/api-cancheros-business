@@ -14,3 +14,4 @@ class Equipo(db.Model):
     subequipos = db.relationship('Subequipo', back_populates='equipo', cascade='all, delete-orphan')
     capitan = db.relationship('Usuario', back_populates='equipos')
     partido = db.relationship('Partido', back_populates='equipo', uselist=False, cascade='all, delete-orphan')
+    participantes = db.relationship('Participante', back_populates='equipo', cascade='all, delete-orphan')
