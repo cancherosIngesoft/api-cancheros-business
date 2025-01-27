@@ -2,7 +2,7 @@ from collections import defaultdict
 import json
 from sqlalchemy import func
 from app.models.Establecimiento import Establecimiento
-from app.schemas.Canchas_sch import CanchaSchema
+from app.schemas.Canchas_sch import CanchaSchema, CanchaSchemaBusiness
 from app.models.Cancha import Cancha
 from app.utils.cloud_storage import gcs_upload_image, upload_to_gcs
 from app.routes.Horarios_route import set_court_time
@@ -94,7 +94,7 @@ def get_canchas(est_id):
         else:
             list_canchas = []
             for cancha in canchas:
-                cancha_schema = CanchaSchema().dump(cancha)
+                cancha_schema = CanchaSchemaBusiness().dump(cancha)
                 list_canchas.append(cancha_schema)
             return jsonify({"courts": list_canchas}), 200
             
