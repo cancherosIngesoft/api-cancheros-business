@@ -14,7 +14,7 @@ class Reserva(db.Model):
     id_partido = db.Column(
         db.Integer, 
         db.ForeignKey('partido.id_partido', name='id_partido'), 
-        nullable=False
+        nullable=True
     )
 
 
