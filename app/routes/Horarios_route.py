@@ -1,4 +1,8 @@
+import unicodedata
+import pytz
 import requests
+from sqlalchemy import func
+from app.models.Reserva import Reserva
 from app.models.Horario import Horario
 from app.models.Horario_cancha import Horario_cancha
 from app.models.Cancha import Cancha
@@ -6,7 +10,8 @@ from app import db
 from flask import request, Blueprint, jsonify
 from app.schemas.Horario_sch import HorarioSchema
 from app.schemas.Horario_cancha_sch import HorarioCanchaSchema
-from datetime import datetime
+from datetime import datetime, time, timedelta
+import locale
 
 
 horarios_bp = Blueprint('horarios', __name__)
@@ -29,7 +34,73 @@ def set_time():
     
     return jsonify(schema) 
 
+@horarios_bp.route('/available/court/<int:id_cancha>', methods = ['POST'])
+def get_available_hours(id_cancha):
+    data = request.get_json()
+    date = data["date"]
+    dias_semana = {
+        "Monday": "Lunes", "Tuesday": "Martes", "Wednesday": "Miercoles",
+        "Thursday": "Jueves", "Friday": "Viernes",
+        "Saturday": "Sabado", "Sunday": "Domingo"
+    }
 
+    fecha_dt = datetime.strptime(date, "%Y-%m-%d")
+    dia_semana = dias_semana[fecha_dt.strftime("%A")]
+
+    horarios_disponibles = (
+        db.session.query(
+            Horario_cancha.id_cancha,
+            Horario.hora_inicio,
+            Horario.hora_fin
+        )
+        .join(Horario, Horario_cancha.id_horario == Horario.id_horario)
+        .filter(Horario_cancha.id_cancha == id_cancha)
+        .filter(Horario.dia.ilike(dia_semana))
+        .all()
+    )
+
+    reservas_ocupadas = (
+        db.session.query(
+            Reserva.hora_inicio,
+            Reserva.hora_fin
+        )
+        .filter(Reserva.id_cancha == id_cancha)
+        .filter(func.date(Reserva.hora_inicio) == date)
+        .all()
+    )
+
+    if len(horarios_disponibles) == 0 :
+        return jsonify({"message": f"Esta cancha no tiene horarios habilitados para el dia {dia_semana}"}), 400
+
+    franjas_disponibles = []
+    fecha_base = datetime.strptime(date, "%Y-%m-%d")
+    reservas = [(
+        datetime.strptime(reserva.hora_inicio, "%Y-%m-%d %H:%M:%S"),
+        datetime.strptime(reserva.hora_fin, "%Y-%m-%d %H:%M:%S")
+    ) for reserva in reservas_ocupadas]
+
+    for horario in horarios_disponibles:
+        inicio = datetime.combine(fecha_base, horario.hora_inicio)
+        fin = datetime.combine(fecha_base, horario.hora_fin)
+        
+        while inicio + timedelta(hours=1) <= fin:
+            fin_current = inicio + timedelta(hours=1)
+
+            flag_solapa = any(
+                (reserva_inicio < fin_current and reserva_fin > inicio)
+                for reserva_inicio, reserva_fin in reservas
+            )
+
+            if not flag_solapa:
+                franjas_disponibles.append({
+                    "hora_inicio": inicio.strftime('%H:%M:%S'),
+                    "hora_fin": fin_current.strftime('%H:%M:%S')
+                })
+
+            inicio = fin_current
+
+
+    return jsonify(franjas_disponibles), 200
 
 #@horarios_bp.route('/set_court_time/<int:cancha_id>', methods = ['POST'])
 def set_court_time(data, cancha_id):
