@@ -1,6 +1,7 @@
 import importlib
 from flask import Flask
 import os
+
 from .config import Config
 from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
@@ -49,7 +50,7 @@ def create_app():
         # from app.models
         # register_models("models")
         from app.models import Cancha,Duenio,Equipo,Establecimiento,Horario,Horario_establecimiento,Notificacion_estadistica,Notificacion_reserva
-        from app.models import Partido,Plantilla,Reporte,Resenia,Reserva,Reservante,Solicitud,Subequipo,Usuario,Admin,Participante
+        from app.models import Partido,Plantilla,Reporte,Resenia,Reserva,Reservante,Solicitud,Subequipo,Usuario,Admin,Miembro_equipo
         db.create_all()
         from app.routes import register_blueprints
         register_blueprints(app)
