@@ -5,6 +5,12 @@ class Reserva(db.Model):
     hora_inicio = db.Column(db.String(80), nullable=False)
     hora_fin = db.Column(db.String(80), nullable=False)
 
+    id_reservante = db.Column(
+        db.Integer, 
+        db.ForeignKey('reservante.id_reservante', name='id_reservante'), 
+        nullable=False
+    )
+
     id_cancha = db.Column(
         db.Integer, 
         db.ForeignKey('cancha.id_cancha', name='id_cancha'), 
@@ -21,3 +27,4 @@ class Reserva(db.Model):
     cancha = db.relationship('Cancha', back_populates='reservas')
     partido = db.relationship('Partido', back_populates='reserva')
     notificaciones_reserva = db.relationship('Notificacion_reserva', back_populates='reserva', cascade='all, delete-orphan')
+    reservante = db.relationship('Reservante', back_populates='reservas')

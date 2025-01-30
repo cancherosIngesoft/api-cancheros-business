@@ -12,3 +12,10 @@ class Usuario(db.Model):
     equipos = db.relationship('Equipo', back_populates='capitan', cascade='all, delete-orphan')
     notificaciones_reserva = db.relationship('Notificacion_reserva', back_populates='invitado', cascade='all, delete-orphan')
     notificaciones_estadistica = db.relationship('Notificacion_estadistica', back_populates='capitan', cascade='all, delete-orphan')
+    miembros = db.relationship('Miembro_equipo', back_populates='usuario', cascade='all, delete-orphan')
+
+    reservante = db.relationship(
+        "Reservante",
+        primaryjoin="and_(Usuario.id_usuario == foreign(Reservante.id_reservante), Reservante.tipo_reservante == 'usuario')",
+        uselist=False
+    )
