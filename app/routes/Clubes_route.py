@@ -1,8 +1,10 @@
 import json
 from app import db
 from app.models.Equipo import Equipo
+from app.models.Reservante import Reservante
 from app.models.Usuario import Usuario
 from app.schemas.Equipo_sch import EquipoSchema
+from app.schemas.Reservante_sch import ReservanteSchema
 from app.utils.cloud_storage import gcs_upload_someIMG, FOLDER_CLUB
 from flask import request, Blueprint, jsonify,current_app
 
@@ -40,20 +42,46 @@ def create_club(id_user):
 
         data['imagen'] = file_url
         data['id_capitan'] = id_user
+
+        response_insert_reservante, _ = insert_into_reservante( {"tipo_reservante" : "equipo"} )
+        id_reservante= response_insert_reservante.get_json().get('id') 
+
         equipo_data = EquipoSchema().load(data)
-        nuevo_equipo = Equipo(**equipo_data)
+        nuevo_equipo = Equipo(id_equipo=id_reservante,**equipo_data)
 
-        db.session.add(nuevo_equipo)
+        try:
+            db.session.add(nuevo_equipo)     
+            usuario.es_capitan = True
+            usuario.es_jugador = True
+            usuario.es_aficionado = False
+            db.session.commit()
         
-        usuario.es_capitan = True
-        usuario.es_jugador = True
-        usuario.es_aficionado = False
-
-        db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            db.session.query(Reservante).filter(Reservante.id_reservante == id_reservante).delete()
+            db.session.commit()
+            return jsonify({"error": str(e)}), 500
+        
         
         
         return jsonify({"message":"equipo creado exitosamente"}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+    
+
+
+def insert_into_reservante(data):
+    try:
+        reservante_data = ReservanteSchema(exclude=["reservante"]).load(data)
+        nuevo_reservante = Reservante(**reservante_data)
+
+        db.session.add(nuevo_reservante)
+        db.session.commit()
+        return jsonify({"id": nuevo_reservante.id_reservante}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        raise RuntimeError(f"Error en la base de datos: {str(e)}") 
+
     
