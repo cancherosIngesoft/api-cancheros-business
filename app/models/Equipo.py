@@ -3,6 +3,8 @@ from app import db
 class Equipo(db.Model):
     id_equipo = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(80), nullable=False)
+    imagen = db.Column(db.String(), nullable=True)
+    descripcion = db.Column(db.String(80), nullable=True)
 
     id_capitan = db.Column(
         db.Integer, 

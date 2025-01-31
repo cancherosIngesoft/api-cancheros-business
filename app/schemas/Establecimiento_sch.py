@@ -9,7 +9,8 @@ class EstablecimientoSchema(Schema):
     rut = fields.String()
     altitud = fields.Float()
     longitud = fields.Float()
-
+    direccion = fields.String()
+    telefono = fields.String() 
 
 class BusinessInfoSchema(Schema):
     id_establecimiento = fields.Integer(dump_only=True, data_key="id")

@@ -2,7 +2,10 @@ from collections import defaultdict
 import json
 from sqlalchemy import func
 from app.models.Establecimiento import Establecimiento
+from app.models.Horario import Horario
+from app.models.Horario_cancha import Horario_cancha
 from app.schemas.Canchas_sch import CanchaSchema, CanchaSchemaBusiness
+from app.schemas.Horario_sch import HorarioSchema
 from app.models.Cancha import Cancha
 from app.utils.cloud_storage import gcs_upload_image, upload_to_gcs
 from app.routes.Horarios_route import set_court_time
@@ -43,17 +46,20 @@ def post_establecimiento():
         db.session.commit()
     return error
 
-@establecimiento_bp.route('/register_courts/<int:est_id>', methods = ['POST'])
-def post_cancha(est_id):
+@establecimiento_bp.route('/register_courts/<int:id_owner>', methods = ['POST'])
+def post_cancha(id_owner):
     try:
+
         json_data = request.form['json']
         data = json.loads(json_data)
         dataCancha = {key: data[key] for key in ['nombre', 'tipo', 'capacidad', 'descripcion', 'precio'] if key in data}
         dataSchedule = {key: data[key] for key in ['field_schedule'] if key in data}
-        dataCancha['id_establecimiento'] = est_id
-        msg,cod = validate_data_cancha(dataCancha)
+        #dataCancha['id_duenio'] = id_owner
+        msg,cod = validate_data_cancha(dataCancha, id_owner)
         if cod != 200:
             raise ValueError(f"Error en la validación: {msg.data}")
+        establecimiento = Establecimiento.query.filter_by(id_duenio = id_owner).first()
+        dataCancha['id_establecimiento'] = establecimiento.id_establecimiento
         files = request.files.getlist('files') 
         i = 1
         for file in files:
@@ -85,16 +91,28 @@ def post_cancha(est_id):
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
     
-@establecimiento_bp.route('/get_courts/<int:est_id>', methods = ['GET'])
-def get_canchas(est_id):
+@establecimiento_bp.route('/get_courts/<int:id_owner>', methods = ['GET'])
+def get_canchas(id_owner):
     try:
-        canchas= Cancha.query.filter_by(id_establecimiento = est_id).all()
+        establecimiento = Establecimiento.query.filter_by(id_duenio = id_owner).first()
+        if not establecimiento:
+            raise ValueError(f"No hay establecimiento asociado")
+        canchas= Cancha.query.filter_by(id_establecimiento = establecimiento.id_establecimiento).all()
         if not canchas:
             return jsonify({"error": "No hay canchas registradas"}), 500
         else:
             list_canchas = []
             for cancha in canchas:
-                cancha_schema = CanchaSchemaBusiness().dump(cancha)
+                horarios = db.session.query(Horario.dia, Horario.hora_inicio, Horario.hora_fin).\
+                join(Horario_cancha, Horario_cancha.id_horario == Horario.id_horario).\
+                join(Cancha, Cancha.id_cancha == Horario_cancha.id_cancha).\
+                filter(Cancha.id_cancha == cancha.id_cancha).all()
+
+                cancha_schema = CanchaSchema(exclude=["id_establecimiento"]).dump(cancha)
+                field_schedules = []
+                for horario in horarios:
+                    field_schedules.append(  HorarioSchema(exclude=['id_horario']).dump(horario)  )
+                cancha_schema['field_schedule'] =  field_schedules
                 list_canchas.append(cancha_schema)
             return jsonify({"courts": list_canchas}), 200
             
@@ -182,7 +200,7 @@ def get_establecimiento(business_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-def validate_data_cancha(data):
+def validate_data_cancha(data, id_owner):
     nombre = data.get('nombre')
    
     if not nombre:
@@ -205,9 +223,9 @@ def validate_data_cancha(data):
     # if not horario:
     #     return jsonify({"error": "Debe incluir horario para la cancha"}), 400 
 
-    establecimiento = Establecimiento.query.filter_by(id_establecimiento = data.get('id_establecimiento')).first()
+    establecimiento = Establecimiento.query.filter_by(id_duenio = id_owner).first()
     if not establecimiento:
-        return jsonify({"error": "El establecimiento no existe"}), 400 
+        return jsonify({"error": "El usuario no tiene establecimiento asociado"}), 400 
     
     return jsonify({"message":"Data valida"}), 200
 
@@ -217,7 +235,7 @@ def validate_data_est(data):
     longitud = float(data.get('longitud'))
 
 
-    shapefile_path = os.path.join(current_app.root_path, 'static', 'Loca.shp')
+    shapefile_path = os.path.join(current_app.root_path, 'static/geo_bogota', 'Loca.shp')
 
     if not RUT:
         return False, 'ERROR: no hay RUT'

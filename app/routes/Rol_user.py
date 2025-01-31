@@ -12,15 +12,18 @@ usuarios_bp = Blueprint('usuarios', __name__)
 
 @usuarios_bp.route('/rol_user', methods = ['GET', 'POST'])
 def log_usr():
-    data = request.get_json()
-    email = data.get('correo')
-    
-    schema = get_rol(email)
-    if not schema:
-        exit  = post_usr(data)
-        return exit
-          
-    return  schema #o schema?
+    try: 
+        data = request.get_json()
+        email = data.get('correo')
+        
+        schema = get_rol(email)
+        if not schema:
+            exit  = post_usr(data)
+            return exit
+            
+        return  schema 
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 
@@ -28,7 +31,7 @@ def post_usr(data):
     nuevo_usr = Usuario( nombre = data.get('nombre'), correo =  data.get('correo'), es_capitan = False,es_jugador = False, es_aficionado = True )
     db.session.add(nuevo_usr)
     db.session.commit()
-    return "Usuario creado con exito", 200
+    return jsonify({"message": "Usuario creado con exito"}), 200 
 
 
 def get_rol(email):
@@ -47,6 +50,7 @@ def get_rol(email):
                 'correo': admin.correo
                 })
                 schema['rol'] = "admin"
+                schema['id'] = schema.pop('id_admin')
                
         else: 
             schema = DuenioSchema().dump(
@@ -55,6 +59,7 @@ def get_rol(email):
                 'nombre': duenio.nombre
             })   
             schema['rol'] = "duenio"
+            schema['id'] = schema.pop('id_duenio')
             
             
     else:
@@ -66,5 +71,6 @@ def get_rol(email):
         'es_jugador' : usuario.es_jugador,
         'es_aficionado' : usuario.es_aficionado
         })
+        schema['id'] = schema.pop('id_usuario')
     
     return schema
