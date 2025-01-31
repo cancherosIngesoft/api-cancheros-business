@@ -14,6 +14,7 @@ migrate = Migrate()
 
 config = Config().dev_config
 
+
 def register_models(models_package: str):
 
     models_path = os.path.join(os.path.dirname(__file__), models_package.replace('.', '\\'))
