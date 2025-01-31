@@ -4,7 +4,7 @@ from sqlalchemy import func
 from app.models.Establecimiento import Establecimiento
 from app.models.Horario import Horario
 from app.models.Horario_cancha import Horario_cancha
-from app.schemas.Canchas_sch import CanchaSchema
+from app.schemas.Canchas_sch import CanchaSchema, CanchaSchemaBusiness
 from app.schemas.Horario_sch import HorarioSchema
 from app.models.Cancha import Cancha
 from app.utils.cloud_storage import gcs_upload_image, upload_to_gcs
