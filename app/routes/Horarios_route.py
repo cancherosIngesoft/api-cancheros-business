@@ -38,6 +38,9 @@ def set_time():
 def get_available_hours(id_cancha):
     data = request.get_json()
     date = data["date"]
+
+    current_date = datetime.now().date()
+
     dias_semana = {
         "Monday": "Lunes", "Tuesday": "Martes", "Wednesday": "Miercoles",
         "Thursday": "Jueves", "Friday": "Viernes",
@@ -46,6 +49,9 @@ def get_available_hours(id_cancha):
 
     fecha_dt = datetime.strptime(date, "%Y-%m-%d")
     dia_semana = dias_semana[fecha_dt.strftime("%A")]
+
+    if current_date > fecha_dt.date():
+        return jsonify({"message": "Debes pasar una fecha mayor o igual a la fecha actual"})
 
     horarios_disponibles = (
         db.session.query(
@@ -79,6 +85,8 @@ def get_available_hours(id_cancha):
         datetime.strptime(reserva.hora_fin, "%Y-%m-%d %H:%M:%S")
     ) for reserva in reservas_ocupadas]
 
+    current_hour = datetime.now()
+
     for horario in horarios_disponibles:
         inicio = datetime.combine(fecha_base, horario.hora_inicio)
         fin = datetime.combine(fecha_base, horario.hora_fin)
@@ -91,7 +99,9 @@ def get_available_hours(id_cancha):
                 for reserva_inicio, reserva_fin in reservas
             )
 
-            if not flag_solapa:
+            flag_date_current = current_hour > inicio
+
+            if not flag_solapa and not flag_date_current:
                 franjas_disponibles.append({
                     "hora_inicio": inicio.strftime('%H:%M:%S'),
                     "hora_fin": fin_current.strftime('%H:%M:%S')
