@@ -43,16 +43,16 @@ def create_club(id_user):
         else:
             file_url = gcs_upload_someIMG(file_data, file_name, FOLDER_CLUB)
 
+        print(file_url)
         data['imagen'] = file_url
         data['id_capitan'] = id_user
 
         response_insert_reservante, _ = insert_into_reservante( {"tipo_reservante" : "equipo"} )
         id_reservante= response_insert_reservante.get_json().get('id') 
 
-        equipo_data = EquipoSchema().load(data)
-        nuevo_equipo = Equipo(id_equipo=id_reservante,**equipo_data)
-
         try:
+            equipo_data = EquipoSchema().load(data)
+            nuevo_equipo = Equipo(id_equipo=id_reservante,**equipo_data)
             db.session.add(nuevo_equipo)     
             usuario.es_capitan = True
             usuario.es_jugador = True
