@@ -10,11 +10,11 @@ from flask import request, Blueprint, jsonify,current_app
 
 clubes_bp = Blueprint('clubes', __name__)
 
-@clubes_bp.route('/is_able_to_create_club/<int:id_user>', methods = ['GET'])
+#@clubes_bp.route('/is_able_to_create_club/<int:id_user>', methods = ['GET'])
 def is_able_to_create_club(id_user):
     try:
         count_clubs = db.session.query(Equipo).filter_by(id_capitan=id_user).count()
-        if count_clubs < 5:
+        if count_clubs < 6:
             response = {'able' : True }
         else:
             response = {'able' : False }
@@ -22,13 +22,16 @@ def is_able_to_create_club(id_user):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@clubes_bp.route('/create_club/<int:id_user>', methods = ['POST'])
+@clubes_bp.route('/create_club/<int:id_user>', methods = ['POST', 'GET'])
 def create_club(id_user):
     try:
 
         usuario = db.session.query(Usuario).filter(Usuario.id_usuario == id_user).first()
         if not usuario:
             raise ValueError('Usuario no existente')
+        msg, cod = is_able_to_create_club(usuario.id_usuario)
+        if not msg.get_json().get('able'): 
+            raise ValueError('Usuario con más de 5 equipos')
         json_data = request.form['json']
         data = json.loads(json_data)
         file = request.files["file"]
