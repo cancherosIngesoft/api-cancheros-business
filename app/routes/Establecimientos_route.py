@@ -17,7 +17,7 @@ from shapely.geometry import Point
 from flask import request, Blueprint, jsonify,current_app
 
 from app.models.Resenia import Resenia
-from app.schemas.Establecimiento_sch import BusinessInfoSchema
+from app.schemas.Establecimiento_sch import EstablecimientoSchema, BusinessInfoSchema
 
 establecimiento_bp = Blueprint('establecimiento', __name__)
 
@@ -35,16 +35,17 @@ business_schema_canchas =  BusinessInfoSchema(exclude=[
     "promedio_calificacion",
     "priceRange"])
 
-@establecimiento_bp.route('/register_est', methods = ['GET', 'POST'])
-def post_establecimiento():
-    data = request.get_json()
+def post_establecimiento(data):
 
-    is_valid,error = validate_data_est(data)
-    if(is_valid):
-        nuevo_est = Establecimiento( RUT = data.get('RUT'), altitud =  data.get('altitud'), longitud= data.get('longitud'))
+        validate_data_est(data)
+        
+        establecimiento_data = EstablecimientoSchema().load(data)
+        nuevo_est = Establecimiento(**establecimiento_data)
         db.session.add(nuevo_est)
         db.session.commit()
-    return error
+
+
+        return jsonify({"message": "establecimiento creado"}), 200
 
 @establecimiento_bp.route('/register_courts/<int:id_owner>', methods = ['POST'])
 def post_cancha(id_owner):
@@ -238,16 +239,16 @@ def validate_data_est(data):
     shapefile_path = os.path.join(current_app.root_path, 'static/geo_bogota', 'Loca.shp')
 
     if not RUT:
-        return False, 'ERROR: no hay RUT'
+        raise Exception("no hay RUT")
     
-    if not altitud or not longitud: 
-        return False, 'ERROR: no hay altitud y longitud'
+    if not altitud or not longitud:    
+        raise Exception("no hay latitud y longitud") 
     else:  
         valid_coor = is_in_bogota(altitud, longitud, shapefile_path )
-        if not valid_coor:
-            return valid_coor, "ERROR: Coordenadas fuera de bogota" 
+        if not valid_coor:       
+            raise Exception("Coordenadas fuera de bogota") 
     
-    return True, "exito"
+    return jsonify({"mesaage": "Data valida"}), 200 
 
 
 def is_in_bogota(altitude, longitude, shapefile_path):

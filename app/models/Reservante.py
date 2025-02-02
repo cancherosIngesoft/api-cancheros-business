@@ -8,3 +8,8 @@ class Reservante(db.Model):
 
 
     reservas = db.relationship('Reserva', back_populates='reservante', cascade='all, delete-orphan')
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'reservante',
+        'polymorphic_on': tipo_reservante
+    }

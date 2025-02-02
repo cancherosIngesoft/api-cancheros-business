@@ -5,6 +5,7 @@ from app.models.Solicitud import Solicitud
 from app.utils.auth_0 import create_auth_user
 from app.utils.cloud_storage import upload_file, upload_to_gcs
 from app.utils.mailing import send_auth_mail, send_rejected_mail
+from app.routes.Establecimientos_route import post_establecimiento
 from .. import db
 from app.schemas.Solicitud_sch import SolicitudBaseSchema, SolicitudSchema
 from flask import request, Blueprint, jsonify
@@ -176,9 +177,19 @@ def approve_request(solicitud_id):
 
         db.session.add(new_owner)
         db.session.commit()
-
-        email, password = create_auth_user(email_duenio, name)
-        send_auth_mail(name,email,password)
+        business_data = {          
+            "nombre": solicitud.nombre_est,
+            "RUT": solicitud.rut,
+            "altitud": solicitud.latitud,
+            "longitud": solicitud.longitud,
+            "localidad": solicitud.localidad,
+            "direccion": solicitud.direccion,
+            "telefono": solicitud.tel_est,
+            "id_duenio": new_owner.id_duenio
+        }
+        post_establecimiento(business_data)
+        # email, password = create_auth_user(email_duenio, name)
+        # send_auth_mail(name,email,password)
 
         return jsonify({"message": "La solicitud ha sido aprobada"}), 200
        

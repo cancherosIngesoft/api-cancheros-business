@@ -4,8 +4,8 @@ from app.models.Equipo import Equipo
 from app.models.Reservante import Reservante
 from app.models.Usuario import Usuario
 from app.schemas.Equipo_sch import EquipoSchema
-from app.schemas.Reservante_sch import ReservanteSchema
 from app.utils.cloud_storage import gcs_upload_someIMG, FOLDER_CLUB
+from app.utils.utils import insert_into_reservante
 from flask import request, Blueprint, jsonify,current_app
 
 clubes_bp = Blueprint('clubes', __name__)
@@ -73,18 +73,5 @@ def create_club(id_user):
         return jsonify({"error": str(e)}), 500
     
 
-
-def insert_into_reservante(data):
-    try:
-        reservante_data = ReservanteSchema(exclude=["reservante"]).load(data)
-        nuevo_reservante = Reservante(**reservante_data)
-
-        db.session.add(nuevo_reservante)
-        db.session.commit()
-        return jsonify({"id": nuevo_reservante.id_reservante}), 200
-
-    except Exception as e:
-        db.session.rollback()
-        raise RuntimeError(f"Error en la base de datos: {str(e)}") 
 
     
