@@ -7,8 +7,8 @@ class Establecimiento(db.Model):
     altitud = db.Column(db.String(80), nullable=False)
     longitud = db.Column(db.String(80), nullable=False)
     localidad = db.Column(db.String(80), nullable=False)
-    #direccion = db.Column(db.String(80), nullable=True)
-    #telefono = db.Column(db.String(15), nullable=True)
+    direccion = db.Column(db.String(80), nullable=True)
+    telefono = db.Column(db.String(15), nullable=True)
 
     id_duenio = db.Column(
         db.Integer, 

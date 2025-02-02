@@ -6,7 +6,10 @@ from app.schemas.Solicitud_sch import CoordinatesSchema
 
 class EstablecimientoSchema(Schema):
     id_establecimiento = fields.Integer(dump_only=True)
-    rut = fields.String()
+    id_duenio = fields.Integer()
+    nombre = fields.String()
+    localidad = fields.String()
+    RUT = fields.String()
     altitud = fields.Float()
     longitud = fields.Float()
     direccion = fields.String()
