@@ -6,7 +6,7 @@ class EquipoSchema(Schema):
     id_capitan = fields.Integer()
     nombre = fields.String()
     imagen = fields.String(allow_none= True)
-    descripcion = fields.String()
+    descripcion = fields.String(allow_none=True)
 
 class CapitanEquipoSchema(EquipoSchema):
     from app.schemas.Usuario_sch import UsuarioSchema

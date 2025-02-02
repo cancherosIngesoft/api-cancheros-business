@@ -22,14 +22,14 @@ def is_able_to_create_club(id_user):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@clubes_bp.route('/create_club/<int:id_user>', methods = ['POST', 'GET'])
+@clubes_bp.route('/create_club/<int:id_user>', methods = ['POST'])
 def create_club(id_user):
     try:
 
         usuario = db.session.query(Usuario).filter(Usuario.id_usuario == id_user).first()
         if not usuario:
             raise ValueError('Usuario no existente')
-        msg, cod = is_able_to_create_club(usuario.id_usuario)
+        msg, _ = is_able_to_create_club(usuario.id_usuario)
         if not msg.get_json().get('able'): 
             raise ValueError('Usuario con más de 5 equipos')
         json_data = request.form['json']
@@ -73,5 +73,23 @@ def create_club(id_user):
         return jsonify({"error": str(e)}), 500
     
 
+@clubes_bp.route('/get_captain/<int:id_user>', methods = ['GET'])
+def get_captain(id_user):
+    try:
+        usuario = db.session.query(Usuario).filter(Usuario.id_usuario == id_user).first()
+        if not usuario:
+            raise ValueError('Usuario no existente')
+        
+        equipos = Equipo.query.filter_by(id_capitan=id_user).all()
 
+        clubes = []
+
+        for equipo in equipos:
+            equipo_schema = EquipoSchema(exclude=["id_capitan"]).dump(equipo)
+            clubes.append(equipo_schema)
+        
+        return jsonify({"clubes":clubes}), 200
     
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500

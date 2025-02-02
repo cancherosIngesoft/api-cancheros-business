@@ -136,6 +136,9 @@ def upload_rut(solicitud_id):
         if not file:
             return jsonify({"error": "No se ha subido ningún archivo"}), 400
 
+        # if len(file_name) > 80:
+        #     return jsonify({"error": "Nombre de archivo muy grande"}), 400
+        
         file_url = upload_to_gcs(file_data, file_name)
         solicitud.rut = file_url
         db.session.commit()
