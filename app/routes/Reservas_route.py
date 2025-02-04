@@ -12,6 +12,7 @@ from flask import request, Blueprint, jsonify
 from app.models.Reservante import Reservante
 from app.models.Usuario import Usuario
 from app.routes.Horarios_route import verify_hour_court
+from app.routes.Partido_route import create_partido
 from app.schemas.Horario_sch import HorarioSchema
 from app.schemas.Horario_cancha_sch import HorarioCanchaSchema
 from datetime import datetime, time, timedelta
@@ -31,7 +32,7 @@ def get_reservas_week(id_cancha):
 
     try:
         inicio_semana = datetime.strptime(date, "%Y-%m-%d")
-        fin_semana = inicio_semana + timedelta(days=6)
+        fin_semana = inicio_semana + timedelta(days=7)
 
         fin_semana = fin_semana.replace(hour=23, minute=59, second=59)
 
@@ -59,7 +60,9 @@ def create_reserva():
         id_reservante = data.get("id_reservante")
         reservante = db.session.query(Reservante).filter_by(id_reservante=id_reservante).first()
         if not reservante:
-            return jsonify({"error": "No existe el reservante"}), 200
+            return jsonify({"error": "No existe el reservante"}), 404
+        if is_team and not reservante.tipo_reservante == "equipo":
+            return jsonify({"error": "El reservante no corresponde a un equipo"}), 404
         
         hora_inicio=data.get("hora_inicio")
         hora_fin=data.get("hora_fin")
@@ -98,10 +101,15 @@ def create_reserva():
             id_cancha=id_cancha
         )
         db.session.add(nueva_reserva)
-        # db.session.flush()
 
-        # nuevo_miembro = MiembroEquipo(id_usuario=3, id_equipo=nuevo_equipo.id_equipo)
-        # db.session.add(nuevo_miembro)
+        if is_team:
+            new_partido = create_partido({
+                "id_equipo": id_reservante
+            })
+            id_partido = new_partido[0]["id_partido"]
+            nueva_reserva.id_partido = id_partido
+            print("Es un team", new_partido)
+
 
         db.session.commit()
 
