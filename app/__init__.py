@@ -42,6 +42,9 @@ def create_app():
     app.config['MAIL_PASSWORD'] = os.getenv("EMAIL_PASSWORD")
     app.config['MAIL_USE_TLS'] = True
     app.config['MAIL_USE_SSL'] = False
+
+    app.config['SECRET_WEBHOOK'] = os.getenv("SECRET_WEBHOOK")
+    app.config['MERCADO_PAGO_ACCESS_TOKEN'] = os.getenv("MERCADO_PAGO_ACCESS_TOKEN")
     
     db.init_app(app)
     migrate.init_app(app, db)

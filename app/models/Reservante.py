@@ -1,6 +1,6 @@
 from app import db
-from app.models.Equipo import Equipo
-from app.models.Usuario import Usuario
+# from app.models.Equipo import Equipo
+# from app.models.Usuario import Usuario
 
 class Reservante(db.Model):
     id_reservante = db.Column(db.Integer, primary_key=True)
