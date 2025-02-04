@@ -1,6 +1,7 @@
 from app import db
+from app.models.Reservante import Reservante
 
-class Equipo(db.Model):
+class Equipo(Reservante):
     # id_equipo = db.Column(db.Integer, primary_key=True)
     id_equipo = db.Column(
         db.Integer, 
@@ -18,9 +19,9 @@ class Equipo(db.Model):
     )
 
     # plantillas = db.relationship('Plantilla', back_populates='equipo', cascade='all, delete-orphan')
-    subequipos = db.relationship('Subequipo', back_populates='equipo', cascade='all, delete-orphan')
+    # subequipos = db.relationship('Subequipo', back_populates='equipo', cascade='all, delete-orphan')
     # capitan = db.relationship('Usuario', back_populates='equipos')
-    partido = db.relationship('Partido', back_populates='equipo', uselist=False, cascade='all, delete-orphan')
+    partidos = db.relationship('Partido', back_populates='equipo', cascade='all, delete-orphan')
     participantes = db.relationship('Miembro_equipo', back_populates='equipo', cascade='all, delete-orphan')
 
     reservante = db.relationship(
