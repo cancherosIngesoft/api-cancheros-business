@@ -13,6 +13,7 @@ from app.schemas.Horario_cancha_sch import HorarioCanchaSchema
 from datetime import datetime, time, timedelta
 import locale
 
+horario_schema =  HorarioSchema()
 
 horarios_bp = Blueprint('horarios', __name__)
 
@@ -40,16 +41,9 @@ def get_available_hours(id_cancha):
     date = data["date"]
 
     current_date = datetime.now().date()
-
-    dias_semana = {
-        "Monday": "Lunes", "Tuesday": "Martes", "Wednesday": "Miercoles",
-        "Thursday": "Jueves", "Friday": "Viernes",
-        "Saturday": "Sabado", "Sunday": "Domingo"
-    }
-
+    dia_semana = get_day(date)
+    
     fecha_dt = datetime.strptime(date, "%Y-%m-%d")
-    dia_semana = dias_semana[fecha_dt.strftime("%A")]
-
     if current_date > fecha_dt.date():
         return jsonify({"message": "Debes pasar una fecha mayor o igual a la fecha actual"})
 
@@ -81,8 +75,8 @@ def get_available_hours(id_cancha):
     franjas_disponibles = []
     fecha_base = datetime.strptime(date, "%Y-%m-%d")
     reservas = [(
-        datetime.strptime(reserva.hora_inicio, "%Y-%m-%d %H:%M:%S"),
-        datetime.strptime(reserva.hora_fin, "%Y-%m-%d %H:%M:%S")
+        reserva.hora_inicio,
+        reserva.hora_fin
     ) for reserva in reservas_ocupadas]
 
     current_hour = datetime.now()
@@ -180,6 +174,18 @@ def validate_data_time(data):
 
     
     return jsonify({"message":"Horario valido"}), 200
+
+def get_day(date):
+    dias_semana = {
+        "Monday": "Lunes", "Tuesday": "Martes", "Wednesday": "Miercoles",
+        "Thursday": "Jueves", "Friday": "Viernes",
+        "Saturday": "Sabado", "Sunday": "Domingo"
+    }
+
+    fecha_dt = datetime.strptime(date, "%Y-%m-%d")
+    dia_semana = dias_semana[fecha_dt.strftime("%A")]
+
+    return dia_semana
     
 
 def no_hay_horario(data):
@@ -190,3 +196,27 @@ def no_hay_horario(data):
 def no_court_time(id_court, id_time):
     court_time = Horario_cancha.query.filter_by(id_cancha = id_court, id_horario = id_time).first()
     return court_time is None
+
+def verify_hour_court(data):
+    id_cancha = data.get('id_cancha')  
+    hora_inicio = data.get('hora_inicio')  
+    hora_fin = data.get('hora_fin')
+
+
+
+    dia_reserva = get_day(hora_inicio.split(" ")[0])
+
+    horario = (
+        db.session.query(Horario)
+        .join(Horario_cancha, Horario.id_horario == Horario_cancha.id_horario)
+        .filter(Horario_cancha.id_cancha == id_cancha, Horario.dia.ilike(dia_reserva))
+        .first()
+    )
+
+    if not horario:
+        return False
+    
+    hora_inicio_dt = datetime.strptime(hora_inicio, "%Y-%m-%d %H:%M:%S").time()
+    hora_fin_dt = datetime.strptime(hora_fin, "%Y-%m-%d %H:%M:%S").time()
+
+    return horario.hora_inicio <= hora_inicio_dt and horario.hora_fin >= hora_fin_dt

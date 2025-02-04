@@ -2,8 +2,9 @@ from app import db
 
 class Reserva(db.Model):
     id_reserva = db.Column(db.Integer, primary_key=True)
-    hora_inicio = db.Column(db.String(80), nullable=False)
-    hora_fin = db.Column(db.String(80), nullable=False)
+    hora_inicio = db.Column(db.DateTime, nullable=False)
+    hora_fin = db.Column(db.DateTime, nullable=False)
+    estado_procesado = db.Column(db.Boolean, nullable=False, default=False)
 
     id_reservante = db.Column(
         db.Integer, 
