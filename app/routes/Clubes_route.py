@@ -59,7 +59,7 @@ def create_club(id_user):
             usuario.es_jugador = True
             usuario.es_aficionado = False
 
-            nuevo_miembro = Miembro_equipo(id_usuario = usuario.id_usuario, id_equipo = id_reservante)
+            nuevo_miembro = Miembro_equipo(id_usuario = usuario.id_usuario, id_equipo = nuevo_equipo.id_equipo)
             db.session.add(nuevo_miembro) 
 
             db.session.commit()

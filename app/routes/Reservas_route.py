@@ -138,10 +138,26 @@ def update_status(id_reserva):
 def get_reservas_activas(id_user):
     try:
 
-        reservas_individuales = get_reservas_activas_reservante(id_user, False)
+        reservas_individuales = get_reservas_reservante(id_user, in_team=False,activas= True)
 
-        reservas_equipo = get_reservas_activas_equipo_de_user(id_user)
-        #s = { "s" : reservas_individuales, "e" : reservas_equipo }
+        reservas_equipo = get_reservas_equipo_de_user(id_user, activas=True)
+        return  jsonify(reservas_individuales + reservas_equipo)
+
+
+    
+
+    except Exception as e:
+        db.session.rollback()
+        print("Error:", e)
+        return jsonify({"Error": str(e)}), 400
+    
+@reservas_bp.route('/reservations/inactive/<int:id_user>', methods = ['GET'])
+def get_reservas_inactivas(id_user):
+    try:
+
+        reservas_individuales = get_reservas_reservante(id_user, in_team=False,activas= False)
+
+        reservas_equipo = get_reservas_equipo_de_user(id_user, False)
         return  jsonify(reservas_individuales + reservas_equipo)
 
 
@@ -153,10 +169,16 @@ def get_reservas_activas(id_user):
         return jsonify({"Error": str(e)}), 400
     
 
-def get_reservas_activas_reservante(id_booker, in_team):
-        reservas = Reserva.query.filter(
-            Reserva.id_reservante == id_booker,  
-            Reserva.hora_inicio > datetime.now()).all()
+def get_reservas_reservante(id_booker, in_team, activas):
+        
+        if activas:
+            reservas = Reserva.query.filter(
+                Reserva.id_reservante == id_booker,  
+                Reserva.hora_inicio >= datetime.now()).all()
+        else:
+            reservas = Reserva.query.filter(
+                Reserva.id_reservante == id_booker,  
+                Reserva.hora_inicio < datetime.now()).all()
         
         reservas_activas = []
         for reserva in reservas:
@@ -211,13 +233,13 @@ def get_reservas_activas_reservante(id_booker, in_team):
         return reservas_activas
 
 
-def get_reservas_activas_equipo_de_user(id_user):
+def get_reservas_equipo_de_user(id_user, activas):
     
         ids_equipo = db.session.query(Miembro_equipo.id_equipo).filter_by(id_usuario=id_user).all()
 
         reservas_equipos = []
         for id_equipo in ids_equipo:
-            reservas = get_reservas_activas_reservante(id_equipo[0], True)
+            reservas = get_reservas_reservante(id_equipo[0], in_team=True, activas=activas)
             reservas_equipos.extend(reservas)
         
         return reservas_equipos
