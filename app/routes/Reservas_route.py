@@ -1,12 +1,12 @@
 import unicodedata
 import pytz
 import requests
-from sqlalchemy import and_, func, or_
-from app.models.Equipo import Equipo
+from sqlalchemy import and_, func, or_, cast, Date, select
+from app.models.Miembro_equipo import Miembro_equipo
 from app.models.Establecimiento import Establecimiento
 from app.models.Reserva import Reserva
-from app.models.Horario import Horario
-from app.models.Horario_cancha import Horario_cancha
+from app.models.Establecimiento import Establecimiento
+from app.models.Equipo import Equipo
 from app.models.Cancha import Cancha
 from app import db
 from flask import request, Blueprint, jsonify
@@ -165,6 +165,112 @@ def update_status(id_reserva):
         return jsonify({"Error": str(e)}), 400
     
 
+@reservas_bp.route('/reservations/active/<int:id_user>', methods = ['GET'])
+def get_reservas_activas(id_user):
+    try:
+
+        reservas_individuales = get_reservas_reservante(id_user, in_team=False,activas= True)
+
+        reservas_equipo = get_reservas_equipo_de_user(id_user, activas=True)
+        return  jsonify(reservas_individuales + reservas_equipo)
 
 
+    
 
+    except Exception as e:
+        db.session.rollback()
+        print("Error:", e)
+        return jsonify({"Error": str(e)}), 400
+    
+@reservas_bp.route('/reservations/inactive/<int:id_user>', methods = ['GET'])
+def get_reservas_inactivas(id_user):
+    try:
+
+        reservas_individuales = get_reservas_reservante(id_user, in_team=False,activas= False)
+
+        reservas_equipo = get_reservas_equipo_de_user(id_user, False)
+        return  jsonify(reservas_individuales + reservas_equipo)
+
+
+    
+
+    except Exception as e:
+        db.session.rollback()
+        print("Error:", e)
+        return jsonify({"Error": str(e)}), 400
+    
+
+def get_reservas_reservante(id_booker, in_team, activas):
+        
+        if activas:
+            reservas = Reserva.query.filter(
+                Reserva.id_reservante == id_booker,  
+                Reserva.hora_inicio >= datetime.now()).all()
+        else:
+            reservas = Reserva.query.filter(
+                Reserva.id_reservante == id_booker,  
+                Reserva.hora_inicio < datetime.now()).all()
+        
+        reservas_activas = []
+        for reserva in reservas:
+            schema = {}
+            idReservation = reserva.id_reserva
+            dateReservation = reserva.hora_inicio.strftime("%Y-%m-%d")
+            hours = { "horaInicio":reserva.hora_inicio, "horaFin" : reserva.hora_fin }
+            
+            cancha_info = db.session.query(
+                    Cancha.imagen1,
+                    Cancha.capacidad,
+                    Cancha.tipo,
+                    Cancha.precio,
+                    Cancha.id_establecimiento
+                ).filter(Cancha.id_cancha == reserva.id_cancha).first()
+            
+            
+            capacity = cancha_info[1]
+            field_type = cancha_info[2]
+            fieldImg = cancha_info[0]
+
+            diferencia_horas = (reserva.hora_fin - reserva.hora_inicio).total_seconds() / 3600
+            totalPrice = diferencia_horas * float(cancha_info.precio)
+
+
+            Business_info = db.session.query(
+                    Establecimiento.nombre,
+                    Establecimiento.direccion,
+                ).filter(Establecimiento.id_establecimiento == cancha_info.id_establecimiento).first()
+
+            businessDiretion = Business_info[1]
+            businessName = Business_info[0]
+
+            if in_team:
+                teamName_query = db.session.query(Equipo.nombre ).filter_by(id_equipo = id_booker).first()
+                schema['teamName'] = teamName_query[0]
+
+            schema['idReservation'] = idReservation
+            schema['dateReservation'] = dateReservation
+            schema['hours'] = hours
+            schema['inTeam'] = in_team
+            schema['idBooker'] = id_booker
+            schema['bussinesName'] = businessName
+            schema['FieldType'] = field_type
+            schema['capacity'] = capacity
+            schema['bussinesDirection'] = businessDiretion
+            schema['fieldImg'] = fieldImg
+            schema['totalPrice'] = totalPrice
+
+            reservas_activas.append(schema)
+
+        return reservas_activas
+
+
+def get_reservas_equipo_de_user(id_user, activas):
+    
+        ids_equipo = db.session.query(Miembro_equipo.id_equipo).filter_by(id_usuario=id_user).all()
+
+        reservas_equipos = []
+        for id_equipo in ids_equipo:
+            reservas = get_reservas_reservante(id_equipo[0], in_team=True, activas=activas)
+            reservas_equipos.extend(reservas)
+        
+        return reservas_equipos
