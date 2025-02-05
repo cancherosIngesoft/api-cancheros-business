@@ -11,3 +11,7 @@ class ReservaSchema(Schema):
     reservante = fields.Nested(ReservanteSchema(exclude=(["reservante"])))
     hora_inicio = fields.DateTime()
     hora_fin = fields.DateTime()
+
+
+class ReservaSchemaReservante(ReservaSchema):
+    reservante = fields.Nested(ReservanteSchema)
