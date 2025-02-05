@@ -3,6 +3,7 @@ from app import db
 from app.models.Equipo import Equipo
 from app.models.Reservante import Reservante
 from app.models.Usuario import Usuario
+from app.models.Miembro_equipo import Miembro_equipo
 from app.schemas.Equipo_sch import EquipoSchema
 from app.utils.cloud_storage import gcs_upload_someIMG, FOLDER_CLUB
 from app.utils.utils import insert_into_reservante
@@ -57,7 +58,13 @@ def create_club(id_user):
             usuario.es_capitan = True
             usuario.es_jugador = True
             usuario.es_aficionado = False
+
+            nuevo_miembro = Miembro_equipo(id_usuario = usuario.id_usuario, id_equipo = id_reservante)
+            db.session.add(nuevo_miembro) 
+
             db.session.commit()
+
+
         
         except Exception as e:
             db.session.rollback()
