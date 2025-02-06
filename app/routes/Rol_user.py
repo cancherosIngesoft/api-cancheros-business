@@ -32,22 +32,10 @@ def log_usr():
 def post_usr(data):
 
     try:
-
-        response_insert_reservante, _ = insert_into_reservante( {"tipo_reservante" : "usuario"} )
-        id_reservante= response_insert_reservante.get_json().get('id') 
-
-        try:
-            nuevo_usr = Usuario(id_usuario = id_reservante, nombre = data.get('nombre'), correo =  data.get('correo'), es_capitan = False,es_jugador = False, es_aficionado = True )
-            db.session.add(nuevo_usr)
-            db.session.commit()
-            return jsonify({"message": "Usuario creado con exito"}), 200 
-        
-        except Exception as e:
-            db.session.rollback()
-            db.session.query(Reservante).filter(Reservante.id_reservante == id_reservante).delete()
-            db.session.commit()
-            return jsonify({"error": str(e)}), 500
-    
+        nuevo_usr = Usuario(nombre = data.get('nombre'), correo =  data.get('correo'), es_capitan = False,es_jugador = False, es_aficionado = True )
+        db.session.add(nuevo_usr)
+        db.session.commit()
+        return jsonify({"message": "Usuario creado con exito"}), 200 
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500    
