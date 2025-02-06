@@ -191,8 +191,8 @@ def approve_request(solicitud_id):
             "id_duenio": new_owner.id_duenio
         }
         post_establecimiento(business_data)
-        # email, password = create_auth_user(email_duenio, name)
-        # send_auth_mail(name,email,password)
+        email, password = create_auth_user(email_duenio, name)
+        send_auth_mail(name,email,password)
 
         return jsonify({"message": "La solicitud ha sido aprobada"}), 200
        
