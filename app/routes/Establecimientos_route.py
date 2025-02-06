@@ -1,4 +1,5 @@
 from collections import defaultdict
+import datetime
 import json
 from sqlalchemy import func
 from app.models.Establecimiento import Establecimiento
@@ -65,7 +66,7 @@ def post_cancha(id_owner):
         i = 1
         for file in files:
             file_data = file.read()
-            file_name = file.filename
+            file_name = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
             
             if not file:
                 file_url = None
@@ -73,7 +74,6 @@ def post_cancha(id_owner):
                 file_url = gcs_upload_image(file_data, file_name)
             dataCancha[f'imagen{i}'] = file_url
             i+=1
-        print(dataCancha)
         sch = CanchaSchema()
         cancha_data = sch.load(dataCancha)
         nueva_cancha = Cancha(**cancha_data)
