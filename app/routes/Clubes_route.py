@@ -48,17 +48,15 @@ def create_club(id_user):
         data['imagen'] = file_url
         data['id_capitan'] = id_user
 
-        response_insert_reservante, _ = insert_into_reservante( {"tipo_reservante" : "equipo"} )
-        id_reservante= response_insert_reservante.get_json().get('id') 
-
         try:
             equipo_data = EquipoSchema().load(data)
-            nuevo_equipo = Equipo(id_equipo=id_reservante,**equipo_data)
+            nuevo_equipo = Equipo(**equipo_data)
             db.session.add(nuevo_equipo)     
             usuario.es_capitan = True
             usuario.es_jugador = True
             usuario.es_aficionado = False
-
+            db.session.flush()
+            print(nuevo_equipo.id_equipo)
             nuevo_miembro = Miembro_equipo(id_usuario = usuario.id_usuario, id_equipo = nuevo_equipo.id_equipo)
             db.session.add(nuevo_miembro) 
 
@@ -68,8 +66,6 @@ def create_club(id_user):
         
         except Exception as e:
             db.session.rollback()
-            db.session.query(Reservante).filter(Reservante.id_reservante == id_reservante).delete()
-            db.session.commit()
             return jsonify({"error": str(e)}), 500
         
         
