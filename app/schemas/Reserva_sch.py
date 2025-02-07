@@ -11,3 +11,19 @@ class ReservaSchema(Schema):
     reservante = fields.Nested(ReservanteSchema(exclude=(["reservante"])))
     hora_inicio = fields.DateTime()
     hora_fin = fields.DateTime()
+    estado_procesado = fields.Boolean()
+
+
+class ReservaSchemaReservante(ReservaSchema):
+    reservante = fields.Nested(ReservanteSchema)
+
+
+class ReservaSchemaPersonalized(Schema):
+    id_reserva = fields.Integer(dump_only=True, data_key="idReservation")
+    hours = fields.Method('get_horas')
+
+    def get_horas(self, obj):
+        return {
+            "horaInicio": obj.hora_inicio.isoformat(),
+            "horaFin": obj.hora_fin.isoformat()
+        }

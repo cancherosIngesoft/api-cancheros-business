@@ -6,7 +6,7 @@ from flask import jsonify
 
 def insert_into_reservante(data):
     try:
-        reservante_data = ReservanteSchema(exclude=["reservante"]).load(data)
+        reservante_data = ReservanteSchema(exclude=["reservante", "nombre"]).load(data)
         nuevo_reservante = Reservante(**reservante_data)
 
         db.session.add(nuevo_reservante)

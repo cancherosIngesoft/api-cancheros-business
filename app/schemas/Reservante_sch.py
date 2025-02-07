@@ -7,23 +7,27 @@ from app.schemas.Equipo_sch import EquipoSchema
 class ReservanteSchema(Schema):
     id_reservante = fields.Integer(dump_only=True)
     tipo_reservante = fields.String()
+    nombre = fields.Method("get_nombre")
     reservante = fields.Method('get_reservante_detalle')
 
+    def get_nombre(self, obj):
+        return obj.nombre
 
     def get_reservante_detalle(self, obj):
-        if obj['tipo_reservante'] == 'usuario' and obj.get('id_usuario'):
 
-            return UsuarioSchema().dump(
-                {'id_usuario': obj['id_usuario'], 
-                 'nombre': obj['nombre'], 
-                 'rol':obj['rol']
+        if obj.tipo_reservante == 'usuario' and obj.id_reservante:
+
+            return UsuarioSchema(only=("id_usuario","nombre")).dump(
+                {'id_usuario': obj.id_reservante, 
+                 'nombre': obj.nombre, 
+                #  'rol':obj.rol
                  }
             )
-        elif obj['tipo_reservante'] == 'equipo' and obj.get('id_equipo'):
+        elif obj.tipo_reservante  == 'equipo' and obj.id_reservante:
        
-            return EquipoSchema().dump(
-                {'id_equipo': obj['id_equipo'], 
-                 'nombre': obj['nombre'], 
-                 'capitan':obj['capitan'] #TODO: que muestre la info del capitan anidado
+            return EquipoSchema(only=("id_equipo","nombre","capitan")).dump(
+                {'id_equipo': obj.id_reservante, 
+                 'nombre': obj.nombre, 
+                 'capitan':obj.capitan #TODO: que muestre la info del capitan anidado
                  }
                 )
