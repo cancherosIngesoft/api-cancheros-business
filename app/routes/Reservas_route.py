@@ -19,7 +19,7 @@ from app.schemas.Horario_cancha_sch import HorarioCanchaSchema
 from datetime import datetime, time, timedelta
 import locale
 
-from app.schemas.Reserva_sch import ReservaSchema, ReservaSchemaReservante
+from app.schemas.Reserva_sch import ReservaSchema, ReservaSchemaPersonalized, ReservaSchemaReservante
 
 
 reservas_bp = Blueprint('reservas', __name__)
@@ -27,6 +27,7 @@ reserva_schema = ReservaSchema(many=True, exclude=["cancha"])
 reserva_schema_unique = ReservaSchema(exclude=["cancha"])
 
 reserva_schema_cancha = ReservaSchemaReservante(many=True)
+reserva_schema_personalized = ReservaSchemaPersonalized(many=True)
 
 @reservas_bp.route('/reservations/business/<int:id_duenio>', methods = ['GET'])
 def get_reservas_week_establecimiento(id_duenio):
@@ -51,31 +52,47 @@ def get_reservas_week_establecimiento(id_duenio):
             .all()
         )
 
-        return reserva_schema_cancha.dump(reservas), 200
+        return reserva_schema_personalized.dump(reservas), 200
 
     except Exception as e:
         return jsonify({"Error": str(e)}), 400
     
-@reservas_bp.route('/reservations/court/<int:id_cancha>', methods = ['POST'])
+@reservas_bp.route('/reservations/court/<int:id_cancha>', methods = ['GET'])
 def get_reservas_week(id_cancha):
-    data = request.get_json()
-    date = data["date"]
+    week = request.args.get('week_day')
 
     try:
-        inicio_semana = datetime.strptime(date, "%Y-%m-%d")
-        fin_semana = inicio_semana + timedelta(days=7)
+        reservas = None
+        if not week:
+            reservas = Reserva.query.filter(
+                Reserva.id_cancha == id_cancha
+            ).order_by(Reserva.hora_inicio)
+        else:
 
-        fin_semana = fin_semana.replace(hour=23, minute=59, second=59)
+            inicio_semana = datetime.strptime(week, "%Y-%m-%d")
+            fin_semana = inicio_semana + timedelta(days=7)
 
-        reservas = Reserva.query.filter(
-            Reserva.id_cancha == id_cancha,
-            Reserva.hora_inicio >= inicio_semana,
-            Reserva.hora_fin <= fin_semana
-        ).order_by(Reserva.hora_inicio).all()
+            fin_semana = fin_semana.replace(hour=23, minute=59, second=59)
+
+            reservas = Reserva.query.filter(
+                Reserva.id_cancha == id_cancha,
+                Reserva.hora_inicio >= inicio_semana,
+                Reserva.hora_fin <= fin_semana
+            ).order_by(Reserva.hora_inicio).all()
 
      
 
         return reserva_schema.dump(reservas), 200
+
+    except Exception as e:
+        return jsonify({"Error": str(e)}), 400
+    
+@reservas_bp.route('/reservation/<int:id_reservation>', methods = ['GET'])
+def get_reserva(id_reservation):
+
+    try:
+        reserva = Reserva.query.get(id_reservation)
+        return reserva_schema_unique.dump(reserva), 200
 
     except Exception as e:
         return jsonify({"Error": str(e)}), 400
