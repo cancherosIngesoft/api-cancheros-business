@@ -1,5 +1,5 @@
 from collections import defaultdict
-import datetime
+from datetime import datetime
 import json
 from sqlalchemy import func
 from app.models.Establecimiento import Establecimiento
@@ -66,8 +66,9 @@ def post_cancha(id_owner):
         i = 1
         for file in files:
             file_data = file.read()
-            file_name = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-            
+            extension = '.' + file.filename.split('.')[-1].lower()
+            file_name = str(datetime.now().strftime('%Y-%m-%d%H0%M0%S0%f')[:-3]) + extension
+            print(type(file_name), file_name, " xd")
             if not file:
                 file_url = None
             else:
