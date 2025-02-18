@@ -1,7 +1,10 @@
 import unicodedata
+import pandas as pd
 import pytz
 import requests
 from sqlalchemy import and_, func, or_, cast, Date, select
+from app.models.Horario import Horario
+from app.models.Horario_cancha import Horario_cancha
 from app.models.Miembro_equipo import Miembro_equipo
 from app.models.Establecimiento import Establecimiento
 from app.models.Reserva import Reserva
@@ -29,15 +32,120 @@ reserva_schema_unique = ReservaSchema(exclude=["cancha"])
 reserva_schema_cancha = ReservaSchemaReservante(many=True)
 reserva_schema_personalized = ReservaSchemaPersonalized(many=True)
 
-@reservas_bp.route('/reservations/business/<int:id_duenio>', methods = ['GET'])
-def get_reservas_week_establecimiento(id_duenio):
-    week = request.args.get('week_day')
+
+@reservas_bp.route('/reservations/financial-report/business/<int:id_duenio>', methods = ['GET'])
+def get_financial_report(id_duenio):
+
+    id_court = request.args.get('id_court')
+    month = request.args.get('month')
+    year = request.args.get('year') 
 
     try:
 
-        inicio_semana = datetime.strptime(week, "%Y-%m-%d")
-        fin_semana = inicio_semana + timedelta(days=7)
-        fin_semana = fin_semana.replace(hour=23, minute=59, second=59)
+        filtro_cancha = True if id_court is None else (Reserva.id_cancha == id_court)
+        filtro_cancha_horarios = True if id_court is None else (Cancha.id_cancha == id_court)
+
+        filtro_fecha = True
+        if month and year:
+            filtro_fecha = db.extract('month', Reserva.hora_inicio) == month
+            filtro_fecha &= db.extract('year', Reserva.hora_inicio) == year
+
+        reservas = Reserva.query.join(Cancha).join(Establecimiento).filter(
+            Establecimiento.id_duenio == id_duenio,
+            filtro_cancha,
+            filtro_fecha
+        ).all()
+
+        df = pd.DataFrame([
+            {
+                "id_cancha": r.id_cancha,
+                "hora_inicio": r.hora_inicio,
+                "hora_fin": r.hora_fin,
+                "precio": r.cancha.precio
+            } 
+            for r in reservas
+        ])
+
+
+        df["hora_inicio"] = pd.to_datetime(df["hora_inicio"])
+        df["hora_fin"] = pd.to_datetime(df["hora_fin"])
+
+        df["horas_reservadas"] = (df["hora_fin"] - df["hora_inicio"]).dt.total_seconds() / 3600
+
+        df["precio"] = df["precio"].astype(float)
+        df["precio_total"] = df["horas_reservadas"] * df["precio"]
+        total_horas_reservadas = df["horas_reservadas"].sum()
+        
+        print(df.head(10))
+
+        total_canchas = Cancha.query.join(Establecimiento).filter(
+            Establecimiento.id_duenio == id_duenio
+        ).count()
+
+        horarios = (
+            db.session.query(Horario.dia, Horario.hora_inicio, Horario.hora_fin, Cancha.id_cancha)
+            .join(Horario_cancha, Horario.id_horario == Horario_cancha.id_horario)
+            .join(Cancha, Horario_cancha.id_cancha == Cancha.id_cancha)
+            .join(Establecimiento, Cancha.id_establecimiento == Establecimiento.id_establecimiento)
+            .filter(
+                Establecimiento.id_duenio == id_duenio,
+                filtro_cancha_horarios
+            )
+            .all()
+        )
+
+        df_horarios = pd.DataFrame([
+            {
+                "id_cancha": h.id_cancha,
+                "dia": h.dia,
+                "hora_inicio": h.hora_inicio,
+                "hora_fin": h.hora_fin
+            } 
+            for h in horarios
+        ])
+
+        df_horarios["hora_inicio"] = pd.to_datetime(df_horarios["hora_inicio"], format="%H:%M:%S").dt.hour
+        df_horarios["hora_fin"] = pd.to_datetime(df_horarios["hora_fin"], format="%H:%M:%S").dt.hour
+
+        df_horarios["horas_disponibles"] = df_horarios["hora_fin"] - df_horarios["hora_inicio"]
+
+        fecha_min = df["hora_inicio"].min().date()
+        fecha_max = df["hora_fin"].max().date()
+        dias_consultados = (fecha_max - fecha_min).days + 1
+
+        total_horas_disponibles = df_horarios["horas_disponibles"].sum() * dias_consultados / 7
+
+        #Calculo final del porcentaje de uso
+        porcentaje_uso = (total_horas_reservadas / total_horas_disponibles) * 100 if total_horas_disponibles > 0 else 0
+        total_ingresos = df["precio_total"].sum()
+
+        return jsonify({
+            "use_porcentage": porcentaje_uso,
+            "total_profit": total_ingresos
+        }), 200
+
+    except Exception as e:
+        return jsonify({"Error": str(e)}), 400
+
+@reservas_bp.route('/reservations/business/<int:id_duenio>', methods = ['GET'])
+def get_reservas_week_establecimiento(id_duenio):
+    week = request.args.get('week_day')
+    month = request.args.get('month')
+    year = request.args.get('year') 
+
+    try:
+
+        filtro_month = True
+        if month and year:
+            filtro_month = db.extract('month', Reserva.hora_inicio) == month
+            filtro_month &= db.extract('year', Reserva.hora_inicio) == year
+
+        filtro_semana = True
+        if week:
+            inicio_semana = datetime.strptime(week, "%Y-%m-%d")
+            fin_semana = inicio_semana + timedelta(days=7)
+            fin_semana = fin_semana.replace(hour=23, minute=59, second=59)
+            filtro_semana = (Reserva.hora_inicio >= inicio_semana) & (Reserva.hora_fin <= fin_semana)
 
         reservas = (
             Reserva.query
@@ -45,8 +153,10 @@ def get_reservas_week_establecimiento(id_duenio):
             .join(Establecimiento, Cancha.id_establecimiento == Establecimiento.id_establecimiento)
             .filter(
                 Establecimiento.id_duenio == id_duenio,
-                Reserva.hora_inicio >= inicio_semana,  
-                Reserva.hora_fin <= fin_semana         
+                filtro_semana,
+                filtro_month
+                # Reserva.hora_inicio >= inicio_semana,  
+                # Reserva.hora_fin <= fin_semana,
             )
             .order_by(Reserva.hora_inicio)
             .all()
@@ -56,6 +166,8 @@ def get_reservas_week_establecimiento(id_duenio):
 
     except Exception as e:
         return jsonify({"Error": str(e)}), 400
+    
+
     
 @reservas_bp.route('/reservations/court/<int:id_cancha>', methods = ['GET'])
 def get_reservas_week(id_cancha):
