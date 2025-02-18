@@ -5,6 +5,13 @@ class Reserva(db.Model):
     hora_inicio = db.Column(db.DateTime, nullable=False)
     hora_fin = db.Column(db.DateTime, nullable=False)
     estado_procesado = db.Column(db.Boolean, nullable=False, default=False)
+    id_referencia_pago = db.Column(db.String, nullable = True)
+
+    id_host = db.Column(
+        db.Integer, 
+        db.ForeignKey('duenio.id_duenio', name='id_duenio'), 
+        nullable=True
+    )
 
     id_reservante = db.Column(
         db.Integer, 
@@ -26,6 +33,7 @@ class Reserva(db.Model):
 
 
     cancha = db.relationship('Cancha', back_populates='reservas')
+    host = db.relationship('Duenio', back_populates='reservas_host')
     partido = db.relationship('Partido', back_populates='reserva')
     notificaciones_reserva = db.relationship('Notificacion_reserva', back_populates='reserva', cascade='all, delete-orphan')
     reservante = db.relationship('Reservante', back_populates='reservas')

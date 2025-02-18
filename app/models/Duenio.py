@@ -10,3 +10,4 @@ class Duenio(db.Model):
     fecha_nacimiento = db.Column(db.DateTime, nullable=True)
 
     establecimiento = db.relationship('Establecimiento', back_populates='duenio', cascade='all, delete-orphan')
+    reservas_host = db.relationship('Reserva', back_populates='reserva_host', cascade='all, delete-orphan')
