@@ -1,25 +1,32 @@
 import unicodedata
 import pytz
 import requests
+from datetime import datetime
 from sqlalchemy import and_, func, or_, cast, Date, select
+from app.models.Plantilla import plantilla
 from app.models.Miembro_equipo import Miembro_equipo
 from app.models.Establecimiento import Establecimiento
 from app.models.Reserva import Reserva
 from app.models.Establecimiento import Establecimiento
 from app.models.Equipo import Equipo
 from app.models.Cancha import Cancha
+from app.models.Partido import Partido
 from app import db
 from flask import request, Blueprint, jsonify
 from app.models.Reservante import Reservante
+from app.models.Subequipo import Subequipo
 from app.models.Usuario import Usuario
 from app.routes.Horarios_route import verify_hour_court
 from app.routes.Partido_route import create_partido
 from app.schemas.Horario_sch import HorarioSchema
+from app.schemas.Establecimiento_sch import BusinessReservaInfo
+from app.schemas.Canchas_sch import CanchaReservaInfo
 from app.schemas.Horario_cancha_sch import HorarioCanchaSchema
 from datetime import datetime, time, timedelta
 import locale
 
-from app.schemas.Reserva_sch import ReservaSchema, ReservaSchemaPersonalized, ReservaSchemaReservante
+from app.schemas.Reserva_sch import ReservaSchema, ReservaSchemaPersonalized, ReservaSchemaReservante, ReservationExtended, IndividualReservationReturn, TeamReservationReturn
+from app.utils.utils import is_in_team
 
 
 reservas_bp = Blueprint('reservas', __name__)
@@ -215,6 +222,64 @@ def get_reservas_inactivas(id_user):
         db.session.rollback()
         print("Error:", e)
         return jsonify({"Error": str(e)}), 400
+
+@reservas_bp.route('/reservations/active/club/<int:id_equipo>/<int:id_user>', methods = ['GET'])
+def get_reservas_activas_equipo(id_equipo, id_user):
+    try:
+        in_team = is_in_team(id_equipo, id_user)
+        if(in_team):
+            return reservas_activas_equipo(id_equipo=id_equipo, id_user=id_user)
+        else:
+            raise Exception("El usuaio no pertenece al equipo")
+ 
+    except Exception as e:
+        print("Error:", e)
+        return jsonify({"Error": str(e)}), 400
+    
+def reservas_activas_equipo(id_equipo, id_user):
+
+    try: 
+        reservas = Reserva.query.filter(
+                    Reserva.id_reservante == id_equipo,  
+                    Reserva.hora_inicio >= datetime.now()).all()
+        reservas_activas = []
+        for reserva in reservas:
+            schema = TeamReservationReturn()
+            reserva_info = ReservaSchemaPersonalized().dump(reserva)
+            #print('res', reserva_info)
+            cancha_info =  get_cancha_information_reserva(reserva.id_cancha)
+            #print('hola', cancha_info)
+
+            diferencia_horas = (reserva.hora_fin - reserva.hora_inicio).total_seconds() / 3600
+            totalPrice = diferencia_horas * float(cancha_info.get('precio'))
+
+            Business_info = get_bussines_information_reserva(cancha_info.get('id_establecimiento'))
+            
+            subequipos_info = get_subequipo_information_reserva(reserva.id_partido)
+
+            is_participating  = get_is_participating(id_partido= reserva.id_partido,id_user=id_user )
+
+            teamCaptain_query = db.session.query(Equipo.id_capitan ).filter_by(id_equipo = id_equipo).first()            
+
+            reserva_individual_data = {
+                **reserva_info,
+                **cancha_info,
+                **Business_info,
+                **subequipos_info,
+                'totalPrice' : totalPrice,
+                'idBooker' : teamCaptain_query[0],
+                'isParticipating' : is_participating
+            }
+            
+            
+            reserva_individual = schema.dump(reserva_individual_data)      
+
+            reservas_activas.append(reserva_individual)
+        return reservas_activas
+    
+    except Exception as e:
+        print("Error:", e)
+        return jsonify({"Error": str(e)}), 400
     
 
 def get_reservas_reservante(id_booker, in_team, activas):
@@ -230,56 +295,105 @@ def get_reservas_reservante(id_booker, in_team, activas):
         
         reservas_activas = []
         for reserva in reservas:
-            schema = {}
-            idReservation = reserva.id_reserva
-            dateReservation = reserva.hora_inicio.strftime("%Y-%m-%d")
-            hours = { "horaInicio":reserva.hora_inicio, "horaFin" : reserva.hora_fin }
-            
-            cancha_info = db.session.query(
-                    Cancha.imagen1,
-                    Cancha.capacidad,
-                    Cancha.tipo,
-                    Cancha.precio,
-                    Cancha.id_establecimiento
-                ).filter(Cancha.id_cancha == reserva.id_cancha).first()
-            
-            
-            capacity = cancha_info[1]
-            field_type = cancha_info[2]
-            fieldImg = cancha_info[0]
+            schema = IndividualReservationReturn()
+            reserva_info = ReservaSchemaPersonalized().dump(reserva)
+            cancha_info =  get_cancha_information_reserva(reserva.id_cancha)
 
             diferencia_horas = (reserva.hora_fin - reserva.hora_inicio).total_seconds() / 3600
-            totalPrice = diferencia_horas * float(cancha_info.precio)
+            totalPrice = diferencia_horas * float(cancha_info.get('precio'))
 
+            Business_info = get_bussines_information_reserva(cancha_info.get('id_establecimiento'))
 
-            Business_info = db.session.query(
-                    Establecimiento.nombre,
-                    Establecimiento.direccion,
-                ).filter(Establecimiento.id_establecimiento == cancha_info.id_establecimiento).first()
+            reserva_individual_data = {
+                **reserva_info,
+                **cancha_info,
+                **Business_info,
+                'totalPrice' : totalPrice,
+                'idBooker' : id_booker,
+                'inTeam' : in_team
+            }
 
-            businessDiretion = Business_info[1]
-            businessName = Business_info[0]
-
+            #print('data', reserva_individual_data)
             if in_team:
                 teamName_query = db.session.query(Equipo.nombre ).filter_by(id_equipo = id_booker).first()
-                schema['teamName'] = teamName_query[0]
+                reserva_individual_data['teamName'] = teamName_query[0]
+                teamCaptain_query = db.session.query(Equipo.id_capitan ).filter_by(id_equipo = id_booker).first()
+                reserva_individual_data['idBooker'] = teamCaptain_query[0]
+            
+            
+            reserva_individual = schema.dump(reserva_individual_data)      
 
-            schema['idReservation'] = idReservation
-            schema['dateReservation'] = dateReservation
-            schema['hours'] = hours
-            schema['inTeam'] = in_team
-            schema['idBooker'] = id_booker
-            schema['bussinesName'] = businessName
-            schema['FieldType'] = field_type
-            schema['capacity'] = capacity
-            schema['bussinesDirection'] = businessDiretion
-            schema['fieldImg'] = fieldImg
-            schema['totalPrice'] = totalPrice
-
-            reservas_activas.append(schema)
+            reservas_activas.append(reserva_individual)
 
         return reservas_activas
 
+
+
+def get_is_participating(id_partido, id_user):
+    ids_subequipos = db.session.query(
+            Partido.id_subequipoA,
+            Partido.id_subequipoB
+        ).filter(Partido.id_partido == id_partido).first()
+    
+    is_participating = False
+
+    for id_subequipo in ids_subequipos:
+        query = select(plantilla.c.id_subequipo, plantilla.c.id_miembro).where(
+        (plantilla.c.id_subequipo == id_subequipo) &
+        (plantilla.c.id_miembro == id_user)
+        )
+        result = db.session.execute(query).fetchone()
+        is_in_subequipo = result is not None
+        print('subequipo', id_subequipo)
+
+        is_participating = is_participating or is_in_subequipo
+        print('is_p', is_participating)
+
+    return is_participating
+
+
+def get_bussines_information_reserva(id_establecimiento):
+    Business_info = db.session.query(
+                    Establecimiento.nombre,
+                    Establecimiento.direccion,
+                    Establecimiento.altitud,
+                    Establecimiento.longitud
+                ).filter(Establecimiento.id_establecimiento == id_establecimiento).first()
+    schema = BusinessReservaInfo()
+    return schema.dump(Business_info)
+
+def get_cancha_information_reserva(id_cancha):
+    cancha_info = db.session.query(
+            Cancha.imagen1,
+            Cancha.capacidad,
+            Cancha.tipo,
+            Cancha.precio,
+            Cancha.id_establecimiento
+        ).filter(Cancha.id_cancha == id_cancha).first()
+    
+    schema = CanchaReservaInfo()
+    return schema.dump(cancha_info)
+
+def get_subequipo_information_reserva(id_partido):
+    ids_subequipos = db.session.query(
+            Partido.id_subequipoA,
+            Partido.id_subequipoB
+        ).filter(Partido.id_partido == id_partido).first()
+    subequipos_info = {}
+    claves = ['teamAName',  'teamBName']
+    i = 0
+    for id_subequipo in ids_subequipos:
+        print('id_sub', id_subequipo)
+        subequipo_nombre = db.session.query(
+            Subequipo.nombre
+        ).filter(Subequipo.id_subequipo == id_subequipo).first()
+        print('sub:n', subequipo_nombre)
+        subequipos_info[ claves[i] ] = subequipo_nombre[0]
+        i += 1
+
+    return subequipos_info 
+
+    
 
 def get_reservas_equipo_de_user(id_user, activas):
     
@@ -287,6 +401,7 @@ def get_reservas_equipo_de_user(id_user, activas):
 
         reservas_equipos = []
         for id_equipo in ids_equipo:
+            print('id', id_equipo[0])
             reservas = get_reservas_reservante(id_equipo[0], in_team=True, activas=activas)
             reservas_equipos.extend(reservas)
         
