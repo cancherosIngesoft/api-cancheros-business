@@ -13,19 +13,13 @@ from app import db
 
 payment_bp = Blueprint('payment', __name__)
 
-@payment_bp.route('/webhook', methods = ['POST'])
-def webhook():
+def verify_token(xSignature, xRequestId, dataID):
     WEBHOOK_SECRET = current_app.config["SECRET_WEBHOOK"]
-    MERCADO_PAGO_ACCESS_TOKEN = current_app.config["MERCADO_PAGO_ACCESS_TOKEN"]
-    print("Procesado")
     try:
-        xSignature = request.headers.get("x-signature")
-        xRequestId = request.headers.get("x-request-id")
 
         if not xSignature:
             return jsonify({"error": "Firma no proporcionada"}), 400
 
-        dataID = request.args.get('data.id')
         parts = xSignature.split(",")
 
         ts = None
@@ -41,13 +35,28 @@ def webhook():
                 elif key == "v1":
                     hash = value
 
-
         manifest = f"id:{dataID};request-id:{xRequestId};ts:{ts};"
         hmac_obj = hmac.new(WEBHOOK_SECRET.encode(), msg=manifest.encode(), digestmod=hashlib.sha256)
 
         sha = hmac_obj.hexdigest()
         if not sha == hash:
-            return jsonify({"error": "Firma inválida"}), 401
+            raise ValueError("Firma invalida")
+        
+        return True
+    except Exception as e:
+        raise str(e)
+        
+
+@payment_bp.route('/webhook', methods = ['POST'])
+def webhook():
+    MERCADO_PAGO_ACCESS_TOKEN = current_app.config["MERCADO_PAGO_ACCESS_TOKEN"]
+    print("Procesado")
+    try:
+        xSignature = request.headers.get("x-signature")
+        xRequestId = request.headers.get("x-request-id")
+        dataID = request.args.get('data.id') 
+
+        verify_token(xSignature=xSignature, xRequestId=xRequestId,dataID=dataID)
 
         data = request.json
         print(data)
@@ -74,7 +83,11 @@ def webhook():
 
         
         return jsonify({"status": "success"}), 200
-
+    
+    except ValueError as e:
+        print(f"Error en la verificación del token: {e}")
+        return jsonify({"error": str(e)}), 401
+    
     except Exception as e:
         print(f"Error procesando el webhook: {e}")
         return jsonify({"error": "Error interno del servidor"}), 500

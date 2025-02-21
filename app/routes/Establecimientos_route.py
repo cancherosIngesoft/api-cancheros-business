@@ -48,6 +48,7 @@ def post_establecimiento(data):
 
         return jsonify({"message": "establecimiento creado"}), 200
 
+
 @establecimiento_bp.route('/register_courts/<int:id_owner>', methods = ['POST'])
 def post_cancha(id_owner):
     try:

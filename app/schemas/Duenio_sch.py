@@ -10,3 +10,4 @@ class DuenioSchema(Schema):
     documento = fields.Integer()
     telefono = fields.String() 
     fecha_nacimiento = fields.DateTime()
+    commission_amount = fields.Number()
