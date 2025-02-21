@@ -1,3 +1,4 @@
+from decimal import ROUND_HALF_UP, Decimal
 import hashlib
 import hmac
 import json
@@ -86,7 +87,11 @@ def calculate_commision(id_reserva):
             return jsonify({"error": "Reserva no encontrada"}), 404
 
         cancha_price = reserva.cancha.precio
-        comision = (((cancha_price/2)*0.0329 +952) *0.19) + (cancha_price*0.05)
+        comision = (
+            ((cancha_price / Decimal('2') * Decimal('0.0329') + Decimal('952')) * Decimal('0.19')) 
+            + (cancha_price * Decimal('0.05'))
+        )
+        comision = comision.quantize(Decimal('0.001'), rounding=ROUND_HALF_UP)
 
         id_duenio = reserva.cancha.establecimiento.id_duenio
         duenio = Duenio.query.get(id_duenio)

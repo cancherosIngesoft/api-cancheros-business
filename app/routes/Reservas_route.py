@@ -293,7 +293,7 @@ def update_status(id_reserva, id_referencia):
             return jsonify({"error": "Reserva no encontrada"}), 404
 
         reserva.estado_procesado = True
-        reserva.id_referencia_pago = id_reserva
+        reserva.id_referencia_pago = id_referencia
         db.session.commit()
         return
     except Exception as e:
