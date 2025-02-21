@@ -42,11 +42,19 @@ reserva_schema_personalized = ReservaSchemaPersonalized(many=True)
 
 @reservas_bp.route('/reservations/financial-report/business/<int:id_duenio>', methods = ['GET'])
 def get_financial_report(id_duenio):
-
     id_court = request.args.get('id_court')
     month = request.args.get('month')
-    year = request.args.get('year') 
+    year = request.args.get('year')
 
+    resultado = calcular_reporte_financiero(id_duenio, id_court, month, year)
+
+    if "error" in resultado:
+        return jsonify({"error": resultado["error"]}), 400
+
+    return jsonify(resultado), 200
+
+
+def calcular_reporte_financiero(id_duenio, id_court=None, month=None, year=None):
     try:
 
         filtro_cancha = True if id_court is None else (Reserva.id_cancha == id_court)
@@ -82,8 +90,6 @@ def get_financial_report(id_duenio):
         df["precio"] = df["precio"].astype(float)
         df["precio_total"] = df["horas_reservadas"] * df["precio"]
         total_horas_reservadas = df["horas_reservadas"].sum()
-        
-        print(df.head(10))
 
         total_canchas = Cancha.query.join(Establecimiento).filter(
             Establecimiento.id_duenio == id_duenio
@@ -126,10 +132,10 @@ def get_financial_report(id_duenio):
         porcentaje_uso = (total_horas_reservadas / total_horas_disponibles) * 100 if total_horas_disponibles > 0 else 0
         total_ingresos = df["precio_total"].sum()
 
-        return jsonify({
+        return {
             "use_porcentage": porcentaje_uso,
             "total_profit": total_ingresos
-        }), 200
+        }
 
     except Exception as e:
         return jsonify({"Error": str(e)}), 400
