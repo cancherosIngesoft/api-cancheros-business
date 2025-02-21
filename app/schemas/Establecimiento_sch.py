@@ -31,4 +31,9 @@ class BusinessInfoSchema(Schema):
             "lat": obj.altitud,
             "lon": obj.longitud
         }
-    
+
+class BusinessReservaInfo(Schema):
+    direccion  = fields.String(data_key='businessDirection')
+    nombre  = fields.String(data_key='businessName') 
+    altitud = fields.Float(data_key='lat', required = False)
+    longitud = fields.Float(data_key='long', required = False)
