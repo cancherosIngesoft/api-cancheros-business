@@ -4,7 +4,10 @@ import json
 from flask import Blueprint, current_app, jsonify, request
 import requests
 
+from app.models.Duenio import Duenio
+from app.models.Reserva import Reserva
 from app.routes.Reservas_route import update_status
+from app import db
 
 
 payment_bp = Blueprint('payment', __name__)
@@ -46,6 +49,7 @@ def webhook():
             return jsonify({"error": "Firma inválida"}), 401
 
         data = request.json
+        print(data)
         event_type = data.get('type')
         resource_id = data.get('data', {}).get('id')
 
@@ -62,7 +66,8 @@ def webhook():
                 items = payment_details.get("additional_info", {}).get("items", [])
                 reserva_id = items[0].get("id")
 
-                update_status(reserva_id)
+                update_status(reserva_id, resource_id)
+                calculate_commision(reserva_id)
         else:
             print(f"Evento no manejado: {event_type}")
 
@@ -72,3 +77,23 @@ def webhook():
     except Exception as e:
         print(f"Error procesando el webhook: {e}")
         return jsonify({"error": "Error interno del servidor"}), 500
+    
+
+def calculate_commision(id_reserva):
+    try:
+        reserva = Reserva.query.get(id_reserva)
+        if not reserva:
+            return jsonify({"error": "Reserva no encontrada"}), 404
+
+        cancha_price = reserva.cancha.precio
+        comision = (((cancha_price/2)*0.0329 +952) *0.19) + (cancha_price*0.05)
+
+        id_duenio = reserva.cancha.establecimiento.id_duenio
+        duenio = Duenio.query.get(id_duenio)
+        duenio.commission_amount = comision if not duenio.commission_amount else duenio.commission_amount + comision
+        
+        db.session.commit()
+        return
+    except Exception as e:
+        db.session.rollback()
+        print("Error:", e)

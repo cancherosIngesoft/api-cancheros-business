@@ -8,6 +8,7 @@ class Duenio(db.Model):
     documento = db.Column(db.Integer, nullable=True  )
     telefono = db.Column(db.String(80), nullable=True )
     fecha_nacimiento = db.Column(db.DateTime, nullable=True)
+    commission_amount = db.Column(db.Numeric, nullable=True)
 
     establecimiento = db.relationship('Establecimiento', back_populates='duenio', cascade='all, delete-orphan')
-    reservas_host = db.relationship('Reserva', back_populates='reserva_host', cascade='all, delete-orphan')
+    reservas_host = db.relationship('Reserva', back_populates='host', cascade='all, delete-orphan')

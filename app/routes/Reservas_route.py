@@ -279,13 +279,14 @@ def create_reserva():
         print("Error:", e)
         return jsonify({"Error": str(e)}), 400
     
-def update_status(id_reserva):
+def update_status(id_reserva, id_referencia):
     try:
         reserva = Reserva.query.get(id_reserva)
         if not reserva:
             return jsonify({"error": "Reserva no encontrada"}), 404
 
         reserva.estado_procesado = True
+        reserva.id_referencia_pago = id_reserva
         db.session.commit()
         return
     except Exception as e:
