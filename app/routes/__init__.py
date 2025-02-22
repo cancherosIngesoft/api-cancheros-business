@@ -10,6 +10,7 @@ from app.routes.Subequipo_route import subequipo_bp
 from app.routes.Equipo_route import equipo_bp
 from app.routes.Partido_route import partido_bp
 from app.routes.Payment_route import payment_bp
+from app.routes.Duenios_route import duenios_bp
 
 def register_blueprints(app):
     app.register_blueprint(solicitudes_bp, url_prefix='/api')
@@ -22,3 +23,4 @@ def register_blueprints(app):
     app.register_blueprint(payment_bp, url_prefix='/api')
     app.register_blueprint(equipo_bp, url_prefix='/api')
     app.register_blueprint(partido_bp, url_prefix='/api')
+    app.register_blueprint(duenios_bp, url_prefix='/api')
