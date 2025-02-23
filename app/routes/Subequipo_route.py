@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from sqlalchemy import insert
+from sqlalchemy import delete, insert
 from app import db
 from app.models.Partido import Partido
 from app.models.Reserva import Reserva
@@ -50,16 +50,9 @@ def post_player_subequipo():
     try: 
         data = request.get_json()
         
-        info_partido = ((
-        db.session.query(Partido.id_equipo, Partido.id_partido)  
-        .join(Reserva, Reserva.id_partido == Partido.id_partido)  
-        .filter(Reserva.id_reserva == data.get('id_reservation'))  
-        ).first())
+        id_equipo = get_equipo_in_reserva(data.get('id_reservation'))
 
-        id_equipo = info_partido[0]
-        id_partido = info_partido[1]
-
-        is_subquipo_valido = subequipo_valido(id_partido= id_partido, id_subequipo=data.get('id_subTeam'))
+        is_subquipo_valido = subequipo_valido(id_reserva=data.get('id_reservation'), id_subequipo=data.get('id_subTeam'))
 
         if not is_subquipo_valido:
             raise Exception("El subequipo no pertenece a la reserva")
@@ -95,12 +88,84 @@ def post_player_subequipo():
         print("Error:", e)
         return jsonify({"Error": str(e)}), 400
 
+@subequipo_bp.route('/subequipos/delete_from_subequipo', methods = ['DELETE'])
+def delete_from_subequipo_endpoint():
+    try:
+        data = request.get_json()
+        id_reserva =  data.get("id_reservation")
+        id_usuario = data.get("id_user")
+        
+        id_equipo = get_equipo_in_reserva(id_reserva)
+        id_miembro = get_miembro_from_user(id_equipo= id_equipo, id_usuario= id_usuario)
 
-def subequipo_valido(id_partido, id_subequipo):
-    ids_subequipos = db.session.query(Partido.id_subequipoA, Partido.id_subequipoB).filter(Partido.id_partido == id_partido).first()
-    id_subA = ids_subequipos[0]
-    id_subB = ids_subequipos[1]
-    return id_subequipo == id_subA or id_subequipo == id_subB
+        ids_subequipos_reserva = get_subteams_in_reserva(id_reserva)
+
+        in_any_subequipo = False
+        for id_subequipo in ids_subequipos_reserva:
+            in_any_subequipo = already_confirmed_in_subequipo(id_miembro= id_miembro, id_subequipo=id_subequipo) or in_any_subequipo
+            delete_from_subequipo(id_subequipo=id_subequipo, id_miembro=id_miembro)
+        
+        if not in_any_subequipo:
+            raise ValueError('El usuario no pertenecía a ningún subequipo de la reserva')
+        
+        return jsonify({"message": "Usuario elimiando con exito del subequipo"}), 200 
+    except Exception as e:
+        db.session.rollback()
+        print("Error:", e)
+        return jsonify({"Error": str(e)}), 400
+
+
+def get_miembro_from_user(id_equipo, id_usuario):
+    id_miembro = None
+    id_miembro_query =  db.session.query(
+            Miembro_equipo.id_miembro
+        ).filter(Miembro_equipo.id_equipo == id_equipo, Miembro_equipo.id_usuario == id_usuario).first()
+
+    if id_miembro_query:
+        id_miembro = id_miembro_query[0]
+    return id_miembro
+
+def get_subteams_in_reserva(id_reserva):
+
+    id_partido_query = db.session.query(
+            Reserva.id_partido
+        ).filter(Reserva.id_reserva == id_reserva).first()
+    
+    id_partido = None
+    subteams = []
+    if id_partido_query:
+        id_partido = id_partido_query[0]
+    
+        ids_subequipos_query = db.session.query(
+                Partido.id_subequipoA,
+                Partido.id_subequipoB
+            ).filter(Partido.id_partido == id_partido).first()
+        
+        subteams = list(ids_subequipos_query)
+    return subteams
+
+def get_equipo_in_reserva(id_reserva):
+    id_equipo_query = db.session.query(
+            Reserva.id_reservante
+        ).filter(Reserva.id_reserva == id_reserva).first()
+    
+    id_equipo = None
+    if id_equipo_query:
+        id_equipo = id_equipo_query[0]
+    return id_equipo
+
+def delete_from_subequipo(id_subequipo, id_miembro):
+    stmt = delete(plantilla).where(
+    (plantilla.c.id_subequipo == id_subequipo) &
+    (plantilla.c.id_miembro == id_miembro)
+    )
+
+    db.session.execute(stmt)
+    db.session.commit()
+
+def subequipo_valido(id_reserva, id_subequipo):
+    ids_subequipos = get_subteams_in_reserva(id_reserva)
+    return id_subequipo in ids_subequipos
 
 def already_confirmed_in_subequipo(id_subequipo, id_miembro):
     in_plantilla = db.session.query(plantilla).filter(plantilla.c.id_subequipo == id_subequipo).filter(plantilla.c.id_miembro == id_miembro).first()
