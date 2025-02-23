@@ -12,6 +12,7 @@ class ReservaSchema(Schema):
     hora_inicio = fields.DateTime()
     hora_fin = fields.DateTime()
     estado_procesado = fields.Boolean()
+    id_referencia_pago = fields.String()
 
 
 class ReservaSchemaReservante(ReservaSchema):
