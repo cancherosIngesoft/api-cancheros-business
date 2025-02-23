@@ -16,7 +16,7 @@ class Reserva(db.Model):
     id_reservante = db.Column(
         db.Integer, 
         db.ForeignKey('reservante.id_reservante', name='id_reservante'), 
-        nullable=False
+        nullable=True
     )
 
     id_cancha = db.Column(

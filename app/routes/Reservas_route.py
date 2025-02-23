@@ -4,6 +4,7 @@ import pytz
 import requests
 from datetime import datetime
 from sqlalchemy import and_, func, or_, cast, Date, select
+from app.models.Duenio import Duenio
 from app.models.Horario import Horario
 from app.models.Horario_cancha import Horario_cancha
 from app.models.Plantilla import plantilla
@@ -230,13 +231,20 @@ def create_reserva():
 
     try:
         is_team = data.get("isTeam")
+        id_host = data.get("id_host")
         id_reservante = data.get("id_reservante")
         reservante = db.session.query(Reservante).filter_by(id_reservante=id_reservante).first()
-        if not reservante:
-            return jsonify({"error": "No existe el reservante"}), 404
+        
+        if not id_host:
+            if not reservante:
+                return jsonify({"error": "No existe el reservante"}), 404
+        else:
+            admin = db.session.query(Duenio).filter_by(id_duenio=id_host).first()
+            if not admin:
+                return jsonify({"error": "No existe el host"}), 404
         if is_team and not reservante.tipo_reservante == "equipo":
             return jsonify({"error": "El reservante no corresponde a un equipo"}), 404
-        
+
         hora_inicio=data.get("hora_inicio")
         hora_fin=data.get("hora_fin")
         id_cancha=data.get("id_cancha")
@@ -246,32 +254,16 @@ def create_reserva():
         nueva_hora_inicio = datetime.strptime(data.get("hora_inicio"), "%Y-%m-%d %H:%M:%S")
         nueva_hora_fin = datetime.strptime(data.get("hora_fin"), "%Y-%m-%d %H:%M:%S")
         
-        reservas_solapadas = db.session.query(Reserva).filter(
-            Reserva.id_cancha == id_cancha,
-            or_(
-                and_(
-                    Reserva.hora_inicio <= hora_inicio, 
-                    hora_inicio < Reserva.hora_fin
-                ),
-                and_(
-                    Reserva.hora_inicio < hora_fin, 
-                    hora_fin <= Reserva.hora_fin
-                ),
-                and_(
-                    Reserva.hora_inicio >= hora_inicio, 
-                    Reserva.hora_fin <= hora_fin
-                )
-            )
-        ).all()
-
+        reservas_solapadas = check_reservas_solapadas(id_cancha, hora_inicio, hora_fin)
         if reservas_solapadas:
             return jsonify({"error": "La reserva se solapa con otra existente"}), 400
 
         nueva_reserva = Reserva(
             hora_inicio=hora_inicio,
             hora_fin=hora_fin,
-            id_reservante=id_reservante,
-            id_cancha=id_cancha
+            id_reservante=id_reservante if not id_host else None,
+            id_cancha=id_cancha,
+            id_host=id_host if id_host else None
         )
         db.session.add(nueva_reserva)
 
@@ -291,6 +283,61 @@ def create_reserva():
         db.session.rollback()
         print("Error:", e)
         return jsonify({"Error": str(e)}), 400
+
+@reservas_bp.route('/booking/reschedule/<int:id_reservation>', methods = ['PUT'])
+def reschedule_reserva(id_reservation):
+    data = request.get_json()
+
+    try:
+        reserva = Reserva.query.get(id_reservation)
+        if not reserva:
+            return jsonify({"error": "Reserva no encontrada"}), 404
+
+        nueva_hora_inicio=data.get("hora_inicio")
+        nueva_hora_fin=data.get("hora_fin")
+        id_cancha = reserva.id_cancha
+        data["id_cancha"] = id_cancha
+
+        print(data)
+
+        if not verify_hour_court(data):
+            return jsonify({"error": "Este horario no esta disponible para esta cancha"}), 400
+        
+        reservas_solapadas = check_reservas_solapadas(id_cancha, nueva_hora_inicio, nueva_hora_fin)
+        if reservas_solapadas:
+            return jsonify({"error": "La reserva se solapa con otra existente"}), 400
+
+        reserva.hora_inicio = nueva_hora_inicio
+        reserva.hora_fin = nueva_hora_fin
+        db.session.commit()
+
+        return reserva_schema_unique.dump(reserva), 200
+    except Exception as e:
+        db.session.rollback()
+        print("Error:", e)
+        return jsonify({"Error": str(e)}), 400
+    
+
+def check_reservas_solapadas(id_cancha, hora_inicio, hora_fin):
+    reservas_solapadas = db.session.query(Reserva).filter(
+            Reserva.id_cancha == id_cancha,
+            or_(
+                and_(
+                    Reserva.hora_inicio <= hora_inicio, 
+                    hora_inicio < Reserva.hora_fin
+                ),
+                and_(
+                    Reserva.hora_inicio < hora_fin, 
+                    hora_fin <= Reserva.hora_fin
+                ),
+                and_(
+                    Reserva.hora_inicio >= hora_inicio, 
+                    Reserva.hora_fin <= hora_fin
+                )
+            )
+        ).all()
+    
+    return reservas_solapadas
     
 def update_status(id_reserva, id_referencia):
     try:
@@ -317,9 +364,6 @@ def get_reservas_activas(id_user):
         reservas_equipo = get_reservas_equipo_de_user(id_user, activas=True)
         return  jsonify(reservas_individuales + reservas_equipo)
 
-
-    
-
     except Exception as e:
         db.session.rollback()
         print("Error:", e)
@@ -333,9 +377,6 @@ def get_reservas_inactivas(id_user):
 
         reservas_equipo = get_reservas_equipo_de_user(id_user, False)
         return  jsonify(reservas_individuales + reservas_equipo)
-
-
-    
 
     except Exception as e:
         db.session.rollback()

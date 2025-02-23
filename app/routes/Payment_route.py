@@ -7,14 +7,16 @@ import requests
 
 from app.models.Duenio import Duenio
 from app.models.Reserva import Reserva
+from app.routes.Duenios_route import update_comission
 from app.routes.Reservas_route import update_status
 from app import db
 
 
 payment_bp = Blueprint('payment', __name__)
 
-def verify_token(xSignature, xRequestId, dataID):
-    WEBHOOK_SECRET = current_app.config["SECRET_WEBHOOK"]
+def verify_token(xSignature, xRequestId, dataID,WEBHOOK_SECRET):
+    # WEBHOOK_SECRET = current_app.config["SECRET_WEBHOOK"]
+    # WEBHOOK_SECRET = current_app.config["SECRET_WEBHOOK_COMISSIONS"]
     try:
 
         if not xSignature:
@@ -49,14 +51,38 @@ def verify_token(xSignature, xRequestId, dataID):
 
 @payment_bp.route('/webhook', methods = ['POST'])
 def webhook():
+    def handler_function(response, resource_id):
+        payment_details = response.json()
+        items = payment_details.get("additional_info", {}).get("items", [])
+        reserva_id = items[0].get("id")
+        update_status(reserva_id, resource_id)
+        calculate_commision(reserva_id)
+        return
+    WEBHOOK_SECRET = current_app.config["SECRET_WEBHOOK"]
+    return process_webhook(handler_function=handler_function,WEBHOOK_SECRET=WEBHOOK_SECRET)
+
+    
+    
+@payment_bp.route('/webhook-comissions', methods = ['POST'])
+def webhook_comissions():
+    def handler_function(response, resource_id):
+        payment_details = response.json()
+        items = payment_details.get("additional_info", {}).get("items", [])
+        id_host = items[0].get("id")
+        update_comission(id_host)
+        return
+    WEBHOOK_SECRET = current_app.config["SECRET_WEBHOOK_COMISSIONS"]
+    return process_webhook(handler_function=handler_function,WEBHOOK_SECRET=WEBHOOK_SECRET)
+
+
+def process_webhook(handler_function, WEBHOOK_SECRET):
     MERCADO_PAGO_ACCESS_TOKEN = current_app.config["MERCADO_PAGO_ACCESS_TOKEN"]
-    print("Procesado")
     try:
         xSignature = request.headers.get("x-signature")
         xRequestId = request.headers.get("x-request-id")
         dataID = request.args.get('data.id') 
 
-        verify_token(xSignature=xSignature, xRequestId=xRequestId,dataID=dataID)
+        verify_token(xSignature=xSignature, xRequestId=xRequestId,dataID=dataID, WEBHOOK_SECRET=WEBHOOK_SECRET)
 
         data = request.json
         print(data)
@@ -64,7 +90,6 @@ def webhook():
         resource_id = data.get('data', {}).get('id')
 
         if event_type == 'payment':
-            print(f"Pago recibido: {resource_id}")
             url = f"https://api.mercadopago.com/v1/payments/{resource_id}"
             headers = {
                 "Authorization": f"Bearer {MERCADO_PAGO_ACCESS_TOKEN}"
@@ -72,16 +97,11 @@ def webhook():
             response = requests.get(url, headers=headers)
 
             if response.status_code == 200:
-                payment_details = response.json()
-                items = payment_details.get("additional_info", {}).get("items", [])
-                reserva_id = items[0].get("id")
-
-                update_status(reserva_id, resource_id)
-                calculate_commision(reserva_id)
+                handler_function(response, resource_id)
+                
         else:
             print(f"Evento no manejado: {event_type}")
 
-        
         return jsonify({"status": "success"}), 200
     
     except ValueError as e:
@@ -91,7 +111,6 @@ def webhook():
     except Exception as e:
         print(f"Error procesando el webhook: {e}")
         return jsonify({"error": "Error interno del servidor"}), 500
-    
 
 def calculate_commision(id_reserva):
     try:
