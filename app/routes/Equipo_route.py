@@ -28,8 +28,6 @@ def get_clubes_usuario(id_usuario):
                 'numberPlayers' : count_number_members(id_equipo),
                 'nameCapitan' : get_captain_name(id_equipo)
             }
-            print('1', equipo_info)
-            print(equipo_data)
             equipos.append( ReturnClub().dump( equipo_data)  )
         return equipos
 
