@@ -1,9 +1,11 @@
+from datetime import datetime
 from flask import Blueprint, jsonify, request
 from app.models.Partido import Partido
 from app.models.Reserva import Reserva
 from app.routes.Subequipo_route import create_subequipo
 from app import db
 from app.schemas.Partido_sch import PartidoSchema
+from app.utils.utils import is_in_team, order_matches, past_matches
 
 partido_schema = PartidoSchema()
 
@@ -27,6 +29,33 @@ def post_marcador():
         return jsonify( {'message' : 'Marcador agregado con exito'}), 200
     except Exception as e:
         db.session.rollback()
+        print("Error:", e)
+        return jsonify({"Error": str(e)}), 400
+    
+
+@partido_bp.route('/partido/past_matches/<int:id_equipo>/<int:id_user>', methods = ['GET'])
+def get_past_matches(id_equipo, id_user):
+    try:
+        in_team = is_in_team(id_equipo, id_user)
+        if(in_team):
+            return past_matches(id_equipo=id_equipo, id_user=id_user)
+        else:
+            raise Exception("El usuaio no pertenece al equipo")
+ 
+    except Exception as e:
+        print("Error:", e)
+        return jsonify({"Error": str(e)}), 400
+
+@partido_bp.route('/partido/past_matches_ordered/<int:id_equipo>/<int:id_user>', methods = ['GET'])
+def get_past_matches_ordered(id_equipo, id_user):
+    try:
+        in_team = is_in_team(id_equipo, id_user)
+        if(in_team):
+            return order_matches( past_matches(id_equipo=id_equipo, id_user=id_user) )
+        else:
+            raise Exception("El usuaio no pertenece al equipo")
+ 
+    except Exception as e:
         print("Error:", e)
         return jsonify({"Error": str(e)}), 400
 

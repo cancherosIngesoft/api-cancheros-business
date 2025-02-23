@@ -23,3 +23,9 @@ class CapitanEquipoSchema(EquipoSchema):
     from app.schemas.Usuario_sch import UsuarioSchema
     capitan = fields.Nested(UsuarioSchema(only=('id_usuario','nombre','correo')))
 
+
+class ReturnPlayersClub(Schema):
+    idPlayer = fields.String()
+    name = fields.String()
+    isCaptain = fields.Boolean()
+
