@@ -44,6 +44,7 @@ def create_app():
     app.config['MAIL_USE_SSL'] = False
 
     app.config['SECRET_WEBHOOK'] = os.getenv("SECRET_WEBHOOK")
+    app.config['SECRET_WEBHOOK_COMISSIONS'] = os.getenv("SECRET_WEBHOOK_COMISSIONS")
     app.config['MERCADO_PAGO_ACCESS_TOKEN'] = os.getenv("MERCADO_PAGO_ACCESS_TOKEN")
     
     db.init_app(app)

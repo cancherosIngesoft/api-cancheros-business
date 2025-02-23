@@ -26,3 +26,18 @@ def get_comission_amount(id_owner):
         db.session.rollback()
         print("Error:", e)
         return jsonify({"Error": str(e)}), 400
+    
+
+def update_comission(id_host):
+    try:
+        host = Duenio.query.get(id_host)
+        if not host:
+            return jsonify({"error": "Host de cancha no encontrado"}), 404
+
+        host.commission_amount = 0
+        db.session.commit()
+        return
+    except Exception as e:
+        db.session.rollback()
+        print("Error:", e)
+        return jsonify({"Error": str(e)}), 400

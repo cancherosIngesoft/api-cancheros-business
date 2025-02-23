@@ -202,8 +202,6 @@ def verify_hour_court(data):
     hora_inicio = data.get('hora_inicio')  
     hora_fin = data.get('hora_fin')
 
-
-
     dia_reserva = get_day(hora_inicio.split(" ")[0])
 
     horario = (
