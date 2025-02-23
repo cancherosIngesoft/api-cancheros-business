@@ -48,3 +48,6 @@ venv.bak/
 .coverage
  __pycache__/
 *.pyc
+
+.env
+.storage-credentials.json
