@@ -62,18 +62,20 @@ def captain_add_members():
         id_equipo = data['idTeam']
         emails = data['emailsToAdd']
         id_who_delete = data['idUserWhoAdd']
-
+        not_found = []
         if is_captain_club(id_who_delete, id_equipo):
-
             for correo in emails:
                 id_usuario = find_user_by_email(correo)
-                if not id_usuario:
-                    return
-                if already_in_team(id_usuario, id_equipo):
-                    raise ValueError('El jugador ya pertenece al club') 
-                
-                add_member(id_usuario, id_equipo )
-                return jsonify({'message' : 'Usuario agregado con exito'} ), 200
+
+                if id_usuario:        
+                     
+                    if not already_in_team(id_usuario, id_equipo):              
+                        add_member(id_usuario, id_equipo )
+                else:
+                    not_found.append(correo)
+            if len(not_found) != 0:
+                return jsonify({'message' : f'Algunos usuarios no están registrados {not_found}', "success" : False} ), 200
+            return jsonify({'message' : 'Usuario agregado con exito', "success" : True} ), 200
         else:
             raise ValueError('El usuario debe ser capitán para agregar a otros miembros') 
 
