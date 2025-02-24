@@ -74,8 +74,8 @@ def captain_add_members():
                 else:
                     not_found.append(correo)
             if len(not_found) != 0:
-                return jsonify({'message' : f'Algunos usuarios no están registrados {not_found}'} ), 200
-            return jsonify({'message' : 'Usuario agregado con exito'} ), 200
+                return jsonify({'message' : f'Algunos usuarios no están registrados {not_found}', "success" : False} ), 200
+            return jsonify({'message' : 'Usuario agregado con exito', "success" : True} ), 200
         else:
             raise ValueError('El usuario debe ser capitán para agregar a otros miembros') 
 
