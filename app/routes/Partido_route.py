@@ -20,8 +20,8 @@ def create_partido(data):
         print(subequipo_A)
         nuevo_partido = Partido(
             id_equipo = id_equipo,
-            id_subequipoA = subequipo_A[0]["id_subequipo"],
-            id_subequipoB =subequipo_B[0]["id_subequipo"]
+            id_subequipoA = subequipo_A[0]["idTeam"],
+            id_subequipoB =subequipo_B[0]["idTeam"]
         )
         db.session.add(nuevo_partido)
         db.session.commit()
