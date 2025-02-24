@@ -20,7 +20,6 @@ def post_marcador():
         id_paritdo = db.session.query(Reserva.id_partido).filter(Reserva.id_reserva == data.get('idReservation')).first()[0]
 
         goles_A = data.get('score')[0]
-
         goles_B = data.get('score')[1]
 
         db.session.query(Partido).filter(Partido.id_partido == id_paritdo).update({"goles_A": goles_A, "goles_B": goles_B})
