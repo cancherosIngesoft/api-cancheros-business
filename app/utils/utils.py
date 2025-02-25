@@ -4,6 +4,8 @@ from app import db
 from app.models.Cancha import Cancha
 from app.models.Equipo import Equipo
 from app.models.Establecimiento import Establecimiento
+from app.models.Horario import Horario
+from app.models.Horario_cancha import Horario_cancha
 from app.models.Miembro_equipo import Miembro_equipo
 from app.models.Partido import Partido
 from app.models.Plantilla import plantilla
@@ -14,6 +16,7 @@ from app.models.Usuario import Usuario
 from app.schemas.Canchas_sch import CanchaReservaInfo
 from app.schemas.Equipo_sch import ReturnPlayersClub
 from app.schemas.Establecimiento_sch import BusinessReservaInfo
+from app.schemas.Horario_sch import HorarioReturn
 from app.schemas.Partido_sch import ReturnPastMatches
 from app.schemas.Reserva_sch import ReservaSchemaPersonalized, TeamReservationReturn
 from app.schemas.Reservante_sch import ReservanteSchema
@@ -261,3 +264,57 @@ def get_playersclub_info(id_usuario, id_team):
         }
     
     return ReturnPlayersClub().dump(data)
+
+
+
+def get_horarios_cancha(id_cancha):
+
+    horarios_query = db.session.query(
+        Horario.id_horario,
+        Horario.dia,
+        Horario.hora_inicio,
+        Horario.hora_fin
+    ).join(
+        Horario_cancha,
+        Horario.id_horario == Horario_cancha.id_horario
+    ).filter(
+        Horario_cancha.id_cancha == id_cancha
+    ).all()
+
+    horarios = []
+
+    for horario in horarios_query:
+        horario_schema = HorarioReturn().dump(horario)
+        horarios.append(horario_schema)
+    return horarios
+
+def convert_listjson_to_set(listjson, exclude_keys=None):
+    if exclude_keys is None:
+        exclude_keys = set()
+    
+    return {
+        frozenset((k, v) for k, v in json_item.items() if k not in exclude_keys)
+        for json_item in listjson
+    }
+
+
+
+def get_cambios_in_horarios(nuevos, antiguos):
+
+    indexed_B = {frozenset((k, v) for k, v in d.items() if k != "id_horario"): d for d in antiguos}
+
+    antigua_set = convert_listjson_to_set(antiguos,exclude_keys={"id_horario"})
+    nueva_set = convert_listjson_to_set(nuevos)
+
+    borrados = [indexed_B[item] for item in antigua_set - nueva_set]
+
+    agregados = [dict(item) for item in nueva_set - antigua_set]
+
+    return borrados, agregados
+
+
+def delete_horario_cancha(id_horario, id_cancha):
+    db.session.query(Horario_cancha).filter(Horario_cancha.id_horario == id_horario, Horario_cancha.id_cancha == id_cancha).delete()
+    db.session.commit()
+
+
