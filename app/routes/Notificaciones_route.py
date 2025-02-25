@@ -13,7 +13,7 @@ from app.schemas.Noti_stats_sch import NotificacionEstadisticaSchema
 
 notificaciones_bp = Blueprint('notificaciones', __name__)
 
-noti_stats_schema = NotificacionEstadisticaSchema(many=True)
+noti_stats_schema = NotificacionEstadisticaSchema()
 
 @notificaciones_bp.route('/notifications/check-reservations-finished', methods = ['PUT'])
 def check_reservations_finished():
@@ -60,23 +60,29 @@ def get_notifications_estadistica(id_captain):
     try:
 
         stmt = (
-            select(Notificacion_estadistica, Partido)
+            select(Notificacion_estadistica, Reserva)
             .join(Partido, Notificacion_estadistica.id_partido == Partido.id_partido)
             .join(Equipo, Equipo.id_equipo == Partido.id_equipo)
+            .join(Reserva, Reserva.id_partido == Partido.id_partido)
             .where(
                 Equipo.id_capitan == id_captain
             )
         )
-        
-        results = db.session.execute(stmt).scalars().all()
+
+        results = db.session.execute(stmt).all()
+
         notificaciones = []
-        for notificacion_estadistica in results:
+        for notificacion_estadistica, reserva in results:
             try:
-                print(notificacion_estadistica)
+                notificaciones.append({
+                    "id_reserva": reserva.id_reserva,
+                    **noti_stats_schema.dump(notificacion_estadistica)
+                })
             except Exception as e:
                 print("Error:", e)
 
-        return noti_stats_schema.dump(results), 200
+
+        return notificaciones, 200
     
     except Exception as e:
         db.session.rollback()
