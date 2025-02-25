@@ -338,6 +338,23 @@ def check_reservas_solapadas(id_cancha, hora_inicio, hora_fin):
         ).all()
     
     return reservas_solapadas
+
+def delete_reservation_by_payment(id_payment):
+    try:
+        reserva = Reserva.query.filter_by(id_referencia_pago=id_payment).first()
+        if not reserva:
+            return jsonify({"error": "Reserva no encontrada"}), 404
+
+        db.session.delete(reserva)
+        db.session.commit()
+
+        return jsonify({"message": "Reserva eliminada exitosamente"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print("Error:", e)
+        return jsonify({"error": str(e)}), 500
+    
     
 def update_status(id_reserva, id_referencia):
     try:
