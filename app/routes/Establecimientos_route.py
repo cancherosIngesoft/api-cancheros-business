@@ -10,6 +10,7 @@ from app.schemas.Horario_sch import HorarioSchema
 from app.models.Cancha import Cancha
 from app.utils.cloud_storage import gcs_upload_image, upload_to_gcs
 from app.routes.Horarios_route import set_court_time
+from app.utils.utils import delete_horario_cancha, get_cambios_in_horarios,  get_horarios_cancha
 import geopandas as gpd
 import os
 import requests
@@ -93,7 +94,45 @@ def post_cancha(id_owner):
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
-    
+
+
+@establecimiento_bp.route('/edit_courts/<int:id_cancha>', methods = ['PATCH'])
+def edit_courts(id_cancha):
+    try:
+        data = request.get_json()
+        dataCancha = {key: data[key] for key in ['nombre', 'tipo', 'capacidad', 'descripcion', 'precio'] if key in data}
+        horarios_nuevos = data.get('field_schedule')
+        horarios_antiguos = get_horarios_cancha(id_cancha)
+
+        
+        borrados, agregados = get_cambios_in_horarios(nuevos=horarios_nuevos, antiguos=horarios_antiguos)
+
+        post_cambios_cancha(id_cancha=id_cancha, data=dataCancha)
+
+        for horario in borrados:
+            id_horario = horario.get("id_horario")
+            delete_horario_cancha(id_horario, id_cancha)
+
+        
+        dataSchedule = {
+            "field_schedule" : agregados,
+            "id_court" : id_cancha
+        }
+        set_court_time(dataSchedule, id_cancha)
+
+        
+        return jsonify({"message" : "Cancha editada con exito"})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500 
+
+
+def post_cambios_cancha(id_cancha, data):
+    db.session.query(Cancha).filter(Cancha.id_cancha == id_cancha).update(data)
+    db.session.commit()
+
+
 @establecimiento_bp.route('/get_courts/<int:id_owner>', methods = ['GET'])
 def get_canchas(id_owner):
     try:

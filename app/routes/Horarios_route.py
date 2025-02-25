@@ -146,7 +146,6 @@ def validate_data_time(data):
     hora_inicio_str = data.get('startTime')  
     hora_fin_str = data.get('endTime')
 
-
     if not hora_inicio_str:
         return jsonify({"error": "falta hora_inicio"}), 400
     
@@ -164,13 +163,18 @@ def validate_data_time(data):
 
 
     try:
+
         hora_inicio = datetime.strptime(hora_inicio_str, '%H:%M').time()
         hora_fin = datetime.strptime(hora_fin_str, '%H:%M').time()
         if hora_inicio >= hora_fin:
             return jsonify({"error": "falta hora_inicio debe ser anterior a la hora_fin"}), 400
         
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        try:
+            hora_inicio = datetime.strptime(hora_inicio_str, '%H:%M:%S').time()
+            hora_fin = datetime.strptime(hora_fin_str, '%H:%M:%S').time()
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
     
     return jsonify({"message":"Horario valido"}), 200
