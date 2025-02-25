@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 from app import db
 from app.models.Equipo import Equipo
@@ -37,7 +38,8 @@ def create_club(id_user):
         data = json.loads(json_data)
         file = request.files["file"]
         file_data = file.read()
-        file_name = file.filename
+        extension = '.' + file.filename.split('.')[-1].lower()
+        file_name = str(datetime.now().strftime('%Y-%m-%d%H0%M0%S0%f')[:-3]) + extension
         
         if not file:
             file_url = None
