@@ -20,7 +20,6 @@ def post_marcador():
         id_paritdo = db.session.query(Reserva.id_partido).filter(Reserva.id_reserva == data.get('idReservation')).first()[0]
 
         goles_A = data.get('score')[0]
-
         goles_B = data.get('score')[1]
 
         db.session.query(Partido).filter(Partido.id_partido == id_paritdo).update({"goles_A": goles_A, "goles_B": goles_B})
@@ -73,8 +72,8 @@ def create_partido(data):
         print(subequipo_A)
         nuevo_partido = Partido(
             id_equipo = id_equipo,
-            id_subequipoA = subequipo_A[0]["id_subequipo"],
-            id_subequipoB =subequipo_B[0]["id_subequipo"]
+            id_subequipoA = subequipo_A[0]["idTeam"],
+            id_subequipoB =subequipo_B[0]["idTeam"]
         )
         db.session.add(nuevo_partido)
         db.session.commit()
