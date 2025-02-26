@@ -206,3 +206,20 @@ def create_subequipo(data):
         print("Error:", e)
         return jsonify({"Error": str(e)}), 400
 
+
+def delete_subequipo(id_subequipo):
+    try:
+        subequipoA = Subequipo.query.get(id_subequipo)
+        if not subequipoA:
+            return jsonify({"error": "Subequipo no encontrado"}), 404
+        
+        db.session.delete(subequipoA)
+        db.session.commit()
+
+        return jsonify({"message": "Subequipo eliminada exitosamente"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print("Error:", e)
+        return jsonify({"error": str(e)}), 500
+
