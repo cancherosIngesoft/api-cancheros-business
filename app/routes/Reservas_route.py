@@ -30,7 +30,7 @@ from datetime import datetime, time, timedelta
 import locale
 
 from app.schemas.Reserva_sch import ReservaSchema, ReservaSchemaPersonalized, ReservaSchemaReservante, ReservationExtended, IndividualReservationReturn, TeamReservationReturn
-from app.utils.utils import get_bussines_information_reserva, get_cancha_information_reserva, is_in_team, retrieve_reserva_info
+from app.utils.utils import calculate_comission_court, get_bussines_information_reserva, get_cancha_information_reserva, is_in_team, retrieve_reserva_info
 
 
 reservas_bp = Blueprint('reservas', __name__)
@@ -223,7 +223,30 @@ def get_reserva(id_reservation):
     except Exception as e:
         return jsonify({"Error": str(e)}), 400
     
+@reservas_bp.route('/reservation/reference/<string:id_payment>', methods = ['DELETE'])
+def delete_reservation_by_payment(id_payment):
+    try:
+        reserva = Reserva.query.filter_by(id_referencia_pago=id_payment).first()
+        if not reserva:
+            return jsonify({"error": "Reserva no encontrada"}), 404
 
+        cancha_price = reserva.cancha.precio
+        comision = calculate_comission_court(cancha_price)
+        id_owner = reserva.cancha.establecimiento.id_duenio
+        
+        db.session.delete(reserva)
+
+        duenio = Duenio.query.get(id_owner)
+        duenio.commission_amount =  duenio.commission_amount - comision
+        
+        db.session.commit()
+
+        return jsonify({"message": "Reserva eliminada exitosamente"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print("Error:", e)
+        return jsonify({"error": str(e)}), 500
 
 @reservas_bp.route('/booking', methods = ['POST'])
 def create_reserva():
@@ -338,10 +361,10 @@ def check_reservas_solapadas(id_cancha, hora_inicio, hora_fin):
         ).all()
     
     return reservas_solapadas
-
-def delete_reservation_by_payment(id_payment):
+    
+def delete_reservation_by_id_reserva(id_reserva):
     try:
-        reserva = Reserva.query.filter_by(id_referencia_pago=id_payment).first()
+        reserva = Reserva.query.get(id_reserva)
         if not reserva:
             return jsonify({"error": "Reserva no encontrada"}), 404
 
