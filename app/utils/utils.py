@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import ROUND_HALF_UP, Decimal
 from sqlalchemy import select
 from app import db
 from app.models.Cancha import Cancha
@@ -204,6 +205,7 @@ def get_is_participating(id_partido, id_user):
 
 def get_bussines_information_reserva(id_establecimiento):
     Business_info = db.session.query(
+                    Establecimiento.id_establecimiento,
                     Establecimiento.nombre,
                     Establecimiento.direccion,
                     Establecimiento.altitud,
@@ -212,6 +214,12 @@ def get_bussines_information_reserva(id_establecimiento):
     schema = BusinessReservaInfo()
     return schema.dump(Business_info)
 
+def calculate_comission_court(cancha_price):
+    comision = (
+            ((cancha_price / Decimal('2') * Decimal('0.0329') + Decimal('952')) * Decimal('0.19')) 
+            + (cancha_price * Decimal('0.05'))
+        )
+    return comision.quantize(Decimal('0.001'), rounding=ROUND_HALF_UP)
 
 
 def get_subequipo_information_reserva(id_partido):

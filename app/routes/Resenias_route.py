@@ -12,14 +12,16 @@ from app.models.Resenia import Resenia
 from app.models.Reserva import Reserva
 from app.models.Reservante import Reservante
 from app.models.Usuario import Usuario
+from app.routes.Reservas_route import get_reservas_equipo_de_user, get_reservas_reservante
+from app.schemas.Resenia_sch import ReseniaSchema
 from app.schemas.Reserva_sch import ReservaSchema
 
 
 resenias_bp = Blueprint('resenias', __name__)
 reserva_schema_unique = ReservaSchema(only=["hora_inicio", "hora_fin", "partido"])
+resenia_schema = ReseniaSchema()
 
-@resenias_bp.route('/califications/pending/<int:id_user>', methods = ['GET'])
-def check_reservations_finished(id_user):
+def get_pending_califications(id_user):
     try:
 
         #Reservas individuales
@@ -87,8 +89,47 @@ def check_reservations_finished(id_user):
             except Exception as e:
                 print("Error:", e)
 
-        return pending_califications, 200
+        return pending_califications
     
+    except Exception as e:
+        db.session.rollback()
+        print("Error:", e)
+        return jsonify({"Error": str(e)}), 400
+
+@resenias_bp.route('/calification', methods = ['POST'])
+def post_calification():
+    data = request.get_json()
+    id_user = data.get("id_autor")
+    id_establecimiento = data.get("id_establecimiento")
+    try:
+
+        reservas_individual_done = get_reservas_reservante(id_booker=id_user, in_team=False, activas=False)
+        reservas_team_done = get_reservas_equipo_de_user(id_user, False)
+        all_reservas = reservas_individual_done + reservas_team_done
+        flag_existe = any(reserva["businessId"] == id_establecimiento for reserva in all_reservas) 
+
+        if not flag_existe:
+            return jsonify({
+                "message": "El usuario no puede calificar en este establecimiento"
+            }), 400
+        print(data)
+        resenia = Resenia(**data)
+        db.session.add(resenia)
+        db.session.commit()
+
+        return resenia_schema.dump(resenia), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        print("Error:", e)
+        return jsonify({"Error": str(e)}), 400
+
+@resenias_bp.route('/califications/pending/<int:id_user>', methods = ['GET'])
+def check_reservations_finished(id_user):
+    try:
+        pending_califications = get_pending_califications(id_user)
+        return jsonify(pending_califications), 200
+
     except Exception as e:
         db.session.rollback()
         print("Error:", e)
