@@ -85,4 +85,20 @@ def create_partido(data):
         return jsonify({"Error": str(e)}), 400
     
 
+def delete_partido(id_partido):
+    try:
+        partido = Partido.query.get(id_partido)
+        if not partido:
+            return jsonify({"error": "Partido no encontrado"}), 404
+        
+        db.session.delete(partido)
+        db.session.commit()
+
+        return jsonify({"message": "Partido eliminado exitosamente"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print("Error:", e)
+        return jsonify({"error": str(e)}), 500
+
 

@@ -21,7 +21,8 @@ from app.models.Reservante import Reservante
 from app.models.Subequipo import Subequipo
 from app.models.Usuario import Usuario
 from app.routes.Horarios_route import verify_hour_court
-from app.routes.Partido_route import create_partido
+from app.routes.Partido_route import create_partido, delete_partido
+from app.routes.Subequipo_route import delete_subequipo
 from app.schemas.Horario_sch import HorarioSchema
 from app.schemas.Establecimiento_sch import BusinessReservaInfo
 from app.schemas.Canchas_sch import CanchaReservaInfo
@@ -234,7 +235,15 @@ def delete_reservation_by_payment(id_payment):
         comision = calculate_comission_court(cancha_price)
         id_owner = reserva.cancha.establecimiento.id_duenio
         
+
         db.session.delete(reserva)
+        if reserva.partido:
+            partido = reserva.partido
+            delete_partido(partido.id_partido)
+            if partido.id_subequipoA:
+                delete_subequipo(partido.id_subequipoA)
+            if partido.id_subequipoB:
+                delete_subequipo(partido.id_subequipoB)
 
         duenio = Duenio.query.get(id_owner)
         duenio.commission_amount =  duenio.commission_amount - comision
