@@ -251,7 +251,6 @@ def delete_reservation_by_payment(id_payment):
 @reservas_bp.route('/booking', methods = ['POST'])
 def create_reserva():
     data = request.get_json()
-
     try:
         is_team = data.get("isTeam")
         id_host = data.get("id_host")
