@@ -51,6 +51,7 @@ class ReservationExtended(Schema):
         return  horaInicio[:10] 
 
 class IndividualReservationReturn(ReservationExtended):
+    businessId =  fields.Integer()
     inTeam = fields.Boolean()
     teamName = fields.String(allow_none=True)
 

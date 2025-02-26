@@ -19,7 +19,7 @@ class BusinessInfoSchema(Schema):
     id_establecimiento = fields.Integer(dump_only=True, data_key="id")
     nombre = fields.String(data_key="name")
     geoReference =  fields.Method("get_georeference")
-    promedio_calificacion = fields.String(data_key="calification")
+    promedio_calificacion = fields.Float(data_key="calification")
     priceRange = fields.Method("get_price_range")
     canchas = fields.Nested(CanchaSchema, many=True)
 
@@ -33,6 +33,7 @@ class BusinessInfoSchema(Schema):
         }
 
 class BusinessReservaInfo(Schema):
+    id_establecimiento = fields.Integer(dump_only=True, data_key="businessId")
     direccion  = fields.String(data_key='businessDirection')
     nombre  = fields.String(data_key='businessName') 
     altitud = fields.Float(data_key='lat', required = False)
