@@ -8,7 +8,6 @@ from app.models.Equipo import Equipo
 from app.models.Notificacion_estadistica import Notificacion_estadistica
 from app.models.Partido import Partido
 from app.models.Reserva import Reserva
-from app.routes.Reservas_route import calcular_reporte_financiero
 from app.schemas.Noti_stats_sch import NotificacionEstadisticaSchema
 
 notificaciones_bp = Blueprint('notificaciones', __name__)
@@ -88,3 +87,17 @@ def get_notifications_estadistica(id_captain):
         db.session.rollback()
         print("Error:", e)
         return jsonify({"Error": str(e)}), 400
+    
+def delete_notification(id_capitan, id_partido):
+    try:
+        notification = Notificacion_estadistica.query.filter_by(
+            id_capitan=id_capitan, 
+            id_partido=id_partido).first()
+        if not notification:
+            return False
+        db.session.delete(notification)
+        return True
+    except Exception as e:
+        db.session.rollback()
+        print("Error:", e)
+        return jsonify({"Error": str(e)})
