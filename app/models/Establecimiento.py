@@ -3,7 +3,7 @@ from app import db
 class Establecimiento(db.Model):
     id_establecimiento = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(80), nullable=True)
-    RUT = db.Column(db.String(80), nullable=False)
+    RUT = db.Column(db.String(), nullable=False)
     altitud = db.Column(db.String(80), nullable=False)
     longitud = db.Column(db.String(80), nullable=False)
     localidad = db.Column(db.String(80), nullable=False)
