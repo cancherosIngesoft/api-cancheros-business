@@ -223,19 +223,14 @@ def get_reserva(id_reservation):
 
     except Exception as e:
         return jsonify({"Error": str(e)}), 400
-    
-@reservas_bp.route('/reservation/reference/<string:id_payment>', methods = ['DELETE'])
-def delete_reservation_by_payment(id_payment):
-    try:
-        reserva = Reserva.query.filter_by(id_referencia_pago=id_payment).first()
-        if not reserva:
-            return jsonify({"error": "Reserva no encontrada"}), 404
 
+
+def delete_reservation(reserva):
+    try:
         cancha_price = reserva.cancha.precio
         comision = calculate_comission_court(cancha_price)
         id_owner = reserva.cancha.establecimiento.id_duenio
         
-
         db.session.delete(reserva)
         if reserva.partido:
             partido = reserva.partido
@@ -250,10 +245,42 @@ def delete_reservation_by_payment(id_payment):
         
         db.session.commit()
 
-        return jsonify({"message": "Reserva eliminada exitosamente"}), 200
+        return True
 
     except Exception as e:
         db.session.rollback()
+        print("Error:", e)
+        return False
+    
+@reservas_bp.route('/reservation/reference/<string:id_payment>', methods = ['DELETE'])
+def delete_reservation_by_payment(id_payment):
+    try:
+        reserva = Reserva.query.filter_by(id_referencia_pago=id_payment).first()
+        if not reserva:
+            return jsonify({"error": "Reserva no encontrada"}), 404
+
+        if delete_reservation(reserva):
+            return jsonify({"message": "Reserva eliminada exitosamente"}), 200
+        else:
+            return jsonify({"error": "Ocurrió un error al eliminar la reserva"}), 500
+
+    except Exception as e:
+        print("Error:", e)
+        return jsonify({"error": str(e)}), 500
+
+@reservas_bp.route('/reservation/<string:id_reservation>', methods = ['DELETE'])
+def delete_reservation_by_id(id_reservation):
+    try:
+        reserva = Reserva.query.get(id_reservation)
+        if not reserva:
+            return jsonify({"error": "Reserva no encontrada"}), 404
+
+        if delete_reservation(reserva):
+            return jsonify({"message": "Reserva eliminada exitosamente"}), 200
+        else:
+            return jsonify({"error": "Ocurrió un error al eliminar la reserva"}), 500
+
+    except Exception as e:
         print("Error:", e)
         return jsonify({"error": str(e)}), 500
 

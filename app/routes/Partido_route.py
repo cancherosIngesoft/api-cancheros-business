@@ -2,6 +2,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 from app.models.Partido import Partido
 from app.models.Reserva import Reserva
+from app.routes.Notificaciones_route import delete_notification
 from app.routes.Subequipo_route import create_subequipo
 from app import db
 from app.schemas.Partido_sch import PartidoSchema
@@ -22,7 +23,10 @@ def post_marcador():
         goles_A = data.get('score')[0]
         goles_B = data.get('score')[1]
 
-        db.session.query(Partido).filter(Partido.id_partido == id_paritdo).update({"goles_A": goles_A, "goles_B": goles_B})
+        partido = db.session.query(Partido).filter(Partido.id_partido == id_paritdo).update({"goles_A": goles_A, "goles_B": goles_B})
+        if partido:
+            partido = Partido.query.get(id_paritdo)
+            delete_notification(partido.equipo.id_capitan, id_paritdo)
         db.session.commit()
 
         return jsonify( {'message' : 'Marcador agregado con exito'}), 200
@@ -92,7 +96,7 @@ def delete_partido(id_partido):
             return jsonify({"error": "Partido no encontrado"}), 404
         
         db.session.delete(partido)
-        db.session.commit()
+        # db.session.commit()
 
         return jsonify({"message": "Partido eliminado exitosamente"}), 200
 
