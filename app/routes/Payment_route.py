@@ -8,8 +8,9 @@ import requests
 from app.models.Duenio import Duenio
 from app.models.Reserva import Reserva
 from app.routes.Duenios_route import update_comission
-from app.routes.Reservas_route import update_status
+from app.routes.Reservas_route import delete_reservation_by_id_reserva, delete_reservation_by_payment, update_status
 from app import db
+from app.utils.utils import calculate_comission_court
 
 
 payment_bp = Blueprint('payment', __name__)
@@ -51,66 +52,71 @@ def verify_token(xSignature, xRequestId, dataID,WEBHOOK_SECRET):
 
 @payment_bp.route('/webhook', methods = ['POST'])
 def webhook():
-    def handler_function(response, resource_id):
-        payment_details = response.json()
-        items = payment_details.get("additional_info", {}).get("items", [])
-        reserva_id = items[0].get("id")
-        update_status(reserva_id, resource_id)
-        calculate_commision(reserva_id)
-        return
-    WEBHOOK_SECRET = current_app.config["SECRET_WEBHOOK"]
-    return process_webhook(handler_function=handler_function,WEBHOOK_SECRET=WEBHOOK_SECRET)
-
-    
-    
-@payment_bp.route('/webhook-comissions', methods = ['POST'])
-def webhook_comissions():
-    def handler_function(response, resource_id):
-        payment_details = response.json()
-        items = payment_details.get("additional_info", {}).get("items", [])
-        id_host = items[0].get("id")
-        update_comission(id_host)
-        return
-    WEBHOOK_SECRET = current_app.config["SECRET_WEBHOOK_COMISSIONS"]
-    return process_webhook(handler_function=handler_function,WEBHOOK_SECRET=WEBHOOK_SECRET)
-
-
-def process_webhook(handler_function, WEBHOOK_SECRET):
     MERCADO_PAGO_ACCESS_TOKEN = current_app.config["MERCADO_PAGO_ACCESS_TOKEN"]
+    WEBHOOK_SECRET = current_app.config["SECRET_WEBHOOK"]
+
     try:
         xSignature = request.headers.get("x-signature")
         xRequestId = request.headers.get("x-request-id")
         dataID = request.args.get('data.id') 
 
-        verify_token(xSignature=xSignature, xRequestId=xRequestId,dataID=dataID, WEBHOOK_SECRET=WEBHOOK_SECRET)
+        verify_token(xSignature, xRequestId, dataID, WEBHOOK_SECRET)
 
         data = request.json
-        print(data)
         event_type = data.get('type')
+        action = data.get('action')
         resource_id = data.get('data', {}).get('id')
 
-        if event_type == 'payment':
+        print(f"Evento recibido: {event_type} - {action}")
+
+        if event_type == "payment":
             url = f"https://api.mercadopago.com/v1/payments/{resource_id}"
-            headers = {
-                "Authorization": f"Bearer {MERCADO_PAGO_ACCESS_TOKEN}"
-            }
+            headers = {"Authorization": f"Bearer {MERCADO_PAGO_ACCESS_TOKEN}"}
             response = requests.get(url, headers=headers)
 
             if response.status_code == 200:
-                handler_function(response, resource_id)
-                
+                payment_details = response.json()
+                process_payment_event(payment_details, action, resource_id)
+
         else:
             print(f"Evento no manejado: {event_type}")
 
         return jsonify({"status": "success"}), 200
-    
+
     except ValueError as e:
         print(f"Error en la verificación del token: {e}")
         return jsonify({"error": str(e)}), 401
-    
+
     except Exception as e:
         print(f"Error procesando el webhook: {e}")
         return jsonify({"error": "Error interno del servidor"}), 500
+
+
+def process_payment_event(payment_details, action, resource_id):
+    items = payment_details.get("additional_info", {}).get("items", [])
+    if not items:
+        print("No hay items en el pago.")
+        return
+
+    for item in items:
+        item_id = item.get("id")
+        item_title = item.get("title", "").lower()
+
+        if "reserva" in item_title:
+            if action == "payment.created":
+                update_status(item_id, resource_id)
+                calculate_commision(item_id)
+            if action == "payment.updated":
+                status = payment_details.get("status")
+                if status == "rejected":
+                    delete_reservation_by_id_reserva(item_id)
+        elif "comision" in item_title:
+            print(f"Procesando pago de comisión: {item_id}")
+            update_comission(item_id)
+ 
+
+        
+
 
 def calculate_commision(id_reserva):
     try:
@@ -119,11 +125,7 @@ def calculate_commision(id_reserva):
             return jsonify({"error": "Reserva no encontrada"}), 404
 
         cancha_price = reserva.cancha.precio
-        comision = (
-            ((cancha_price / Decimal('2') * Decimal('0.0329') + Decimal('952')) * Decimal('0.19')) 
-            + (cancha_price * Decimal('0.05'))
-        )
-        comision = comision.quantize(Decimal('0.001'), rounding=ROUND_HALF_UP)
+        comision = calculate_comission_court(cancha_price)
 
         id_duenio = reserva.cancha.establecimiento.id_duenio
         duenio = Duenio.query.get(id_duenio)

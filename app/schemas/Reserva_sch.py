@@ -23,6 +23,7 @@ class ReservaSchemaPersonalized(Schema):
     id_reserva = fields.Integer(dump_only=True, data_key="idReservation")
     hours = fields.Method('get_horas')
     id_cancha = fields.Integer(required = False, data_key="idField")
+    id_referencia_pago = fields.String()
 
     def get_horas(self, obj):
         return {
@@ -43,12 +44,14 @@ class ReservationExtended(Schema):
     fieldImg = fields.String(allow_none= True)
     idBooker = fields.String()
     totalPrice = fields.Integer()
+    id_referencia_pago = fields.String()
     
     def get_dateReserva(self,obj):
         horaInicio  = obj.get('hours').get('horaInicio')
         return  horaInicio[:10] 
 
 class IndividualReservationReturn(ReservationExtended):
+    businessId =  fields.Integer()
     inTeam = fields.Boolean()
     teamName = fields.String(allow_none=True)
 
@@ -57,6 +60,7 @@ class TeamReservationReturn(ReservationExtended):
     isParticipating = fields.Boolean()
     teamAName = fields.String()
     teamBName = fields.String()
+    id_referencia_pago = fields.String()
     
     def get_geoGraphicalLocation(self,obj):
         return {
