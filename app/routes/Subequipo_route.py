@@ -214,7 +214,7 @@ def delete_subequipo(id_subequipo):
             return jsonify({"error": "Subequipo no encontrado"}), 404
         
         db.session.delete(subequipoA)
-        db.session.commit()
+        # db.session.commit()
 
         return jsonify({"message": "Subequipo eliminada exitosamente"}), 200
 
