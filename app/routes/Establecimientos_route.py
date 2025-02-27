@@ -141,7 +141,7 @@ def get_canchas(id_owner):
             raise ValueError(f"No hay establecimiento asociado")
         canchas= Cancha.query.filter_by(id_establecimiento = establecimiento.id_establecimiento).all()
         if not canchas:
-            return jsonify({"error": "No hay canchas registradas"}), 500
+            return [], 500
         else:
             list_canchas = []
             for cancha in canchas:
