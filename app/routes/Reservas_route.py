@@ -240,8 +240,9 @@ def delete_reservation(reserva):
             if partido.id_subequipoB:
                 delete_subequipo(partido.id_subequipoB)
 
-        duenio = Duenio.query.get(id_owner)
-        duenio.commission_amount =  duenio.commission_amount - comision
+        if reserva.estado_procesado:
+            duenio = Duenio.query.get(id_owner)
+            duenio.commission_amount =  duenio.commission_amount - comision
         
         db.session.commit()
 
